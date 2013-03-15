@@ -49,7 +49,8 @@ object SparkBuild extends Build {
 
     // For Sonatype publishing
     resolvers ++= Seq("sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-      "sonatype-staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"),
+      "sonatype-staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/",
+      "Local Maven Repository" at Path.userHome.asFile.toURI.toURL + "/.m2/repository"),
 
     publishMavenStyle := true,
 
@@ -96,7 +97,8 @@ object SparkBuild extends Build {
       "org.scalatest" %% "scalatest" % "1.8" % "test",
       "org.scalacheck" %% "scalacheck" % "1.9" % "test",
       "com.novocode" % "junit-interface" % "0.8" % "test",
-      "org.easymock" % "easymock" % "3.1" % "test"
+      "org.easymock" % "easymock" % "3.1" % "test",
+      "tachyon" % "tachyon" % "0.2-SNAPSHOT"
     ),
     parallelExecution := false,
     /* Workaround for issue #206 (fixed after SBT 0.11.0) */
