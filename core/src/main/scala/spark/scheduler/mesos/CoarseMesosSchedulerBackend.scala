@@ -147,7 +147,8 @@ private[spark] class CoarseMesosSchedulerBackend(
             failuresBySlaveId.getOrElse(slaveId, 0) < MAX_SLAVE_FAILURES &&
             !slaveIdsWithExecutors.contains(slaveId)) {
           // Launch an executor on the slave
-          val cpusToUse = math.min(cpus, maxCores - totalCoresAcquired)
+          val cpusToUse = math.min(math.min(cpus, maxCores - totalCoresAcquired),
+            System.getProperty("spark.mesos.coarse.maxCoresPerNode", "8192").toInt)
           val taskId = newMesosTaskId()
           taskIdToSlaveId(taskId) = slaveId
           slaveIdsWithExecutors += slaveId
