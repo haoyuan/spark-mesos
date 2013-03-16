@@ -11,6 +11,8 @@ import spark.storage.BlockManagerMaster
 import spark.network.ConnectionManager
 import spark.util.AkkaUtils
 
+import tachyon.client.TachyonClient
+
 /**
  * Holds all the runtime environment objects for a running Spark instance (either master or worker),
  * including the serializer, Akka actor system, block manager, map output tracker, etc. Currently
@@ -30,7 +32,9 @@ class SparkEnv (
     val blockManager: BlockManager,
     val connectionManager: ConnectionManager,
     val httpFileServer: HttpFileServer,
-    val sparkFilesDir: String
+    val sparkFilesDir: String,
+    val tachyonSerializer: Serializer,
+    val tachyonClient: TachyonClient
   ) {
 
   def stop() {
@@ -123,6 +127,15 @@ object SparkEnv extends Logging {
         "levels using the RDD.persist() method instead.")
     }
 
+    val tachyonAddress = System.getProperty("spark.tachyon.address")
+    val tachyonSerializerClass =
+      System.getProperty("spark.tachyon.serializer", "spark.JavaSerializer")
+    val tachyonSerializer =
+      Class.forName(tachyonSerializerClass).newInstance().asInstanceOf[Serializer]
+    var tachyonClient: TachyonClient = null
+    tachyonClient = TachyonClient.getClient(tachyonAddress)
+    logWarning("TachyonClient has connected to " + tachyonAddress)
+
     new SparkEnv(
       executorId,
       actorSystem,
@@ -135,6 +148,8 @@ object SparkEnv extends Logging {
       blockManager,
       connectionManager,
       httpFileServer,
-      sparkFilesDir)
+      sparkFilesDir,
+      tachyonSerializer,
+      tachyonClient)
   }
 }

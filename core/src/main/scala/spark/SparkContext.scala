@@ -232,6 +232,10 @@ class SparkContext(
     new ParallelCollectionRDD[T](this, seq.map(_._1), seq.size, indexToPrefs)
   }
 
+  def readFromTachyon[T: ClassManifest](path: String): RDD[T] = {
+    new TachyonRDD[T](this, env.tachyonClient.listFiles(path, true))
+  }
+
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI, and return it as an RDD of Strings.
