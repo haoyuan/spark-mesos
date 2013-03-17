@@ -68,7 +68,9 @@ import SparkContext._
  */
 abstract class RDD[T: ClassManifest](
     @transient private var sc: SparkContext,
-    @transient private var deps: Seq[Dependency[_]]
+    // TODO Add @transient back
+    // @transient private var deps: Seq[Dependency[_]]
+    private var deps: Seq[Dependency[_]]
   ) extends Serializable with Logging {
 
   /** Construct an RDD with just a one-to-one dependency on one parent */
@@ -144,7 +146,9 @@ abstract class RDD[T: ClassManifest](
   // Our dependencies and partitions will be gotten by calling subclass's methods below, and will
   // be overwritten when we're checkpointed
   private var dependencies_ : Seq[Dependency[_]] = null
-  @transient private var partitions_ : Array[Partition] = null
+  // TODO Add @transient back
+  // @transient private var partitions_ : Array[Partition] = null
+  private var partitions_ : Array[Partition] = null
 
   /** An Option holding our checkpoint RDD, if we are checkpointed */
   private def checkpointRDD: Option[RDD[T]] = checkpointData.flatMap(_.checkpointRDD)
@@ -614,7 +618,7 @@ abstract class RDD[T: ClassManifest](
       .saveAsSequenceFile(path)
   }
 
-  def saveToTachyon(path: String) {
+  def saveToTachyon(path: String): Int = {
     System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
 
     // TODO Traverse Spark RDD dependency to find the top RDDs.
@@ -640,6 +644,8 @@ abstract class RDD[T: ClassManifest](
       file.append(SparkEnv.get.tachyonSerializer.newInstance().serialize[ArrayBuffer[T]](buf));
       file.close();
     })
+
+    dependencyId
   }
 
   def tachyonRecompute(dependency: tachyon.thrift.ClientDependencyInfo, partitions: Seq[Int]) {
