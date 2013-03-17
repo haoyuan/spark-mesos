@@ -8,9 +8,9 @@
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,7 +51,7 @@ def parse_args():
       help="Seconds to wait for nodes to start (default: 120)")
   parser.add_option("-k", "--key-pair",
       help="Key pair to use on instances")
-  parser.add_option("-i", "--identity-file", 
+  parser.add_option("-i", "--identity-file",
       help="SSH private key file to use for logging into instances")
   parser.add_option("-t", "--instance-type", default="m1.large",
       help="Type of instance to launch (default: m1.large). " +
@@ -67,7 +67,7 @@ def parse_args():
   parser.add_option("-a", "--ami", default="latest",
       help="Amazon Machine Image ID to use, or 'latest' to use latest " +
            "available AMI (default: latest)")
-  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port", 
+  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port",
       help="Use SSH dynamic port forwarding to create a SOCKS proxy at " +
             "the given local address (for use with login)")
   parser.add_option("--resume", action="store_true", default=False,
@@ -97,7 +97,7 @@ def parse_args():
       help="The SSH user you want to connect as (default: root)")
   parser.add_option("--delete-groups", action="store_true", default=False,
       help="When destroying a cluster, delete the security groups that were created")
-            
+
   (opts, args) = parser.parse_args()
   if len(args) != 2:
     parser.print_help()
@@ -110,7 +110,7 @@ def parse_args():
   if opts.cluster_type not in ["mesos", "standalone"] and action == "launch":
     print >> stderr, ("ERROR: Invalid cluster type: " + opts.cluster_type)
     sys.exit(1)
-  
+
   # Boto config check
   # http://boto.cloudhackers.com/en/latest/boto_config_tut.html
   home_dir = os.getenv('HOME')
@@ -137,6 +137,17 @@ def get_or_make_group(conn, name):
     print "Creating security group " + name
     return conn.create_security_group(name, "Spark EC2 group")
 
+def get_or_make_placement_group(conn, name):
+  groups = conn.get_all_placement_groups()
+  group = [g for g in groups if g.name == name]
+  if len(group) > 0:
+    return group[0]
+  else:
+    print "Creating placement group " + name
+    while conn.create_placement_group(name) == False:
+      print "Created placement group " + name + " failed. Try again."
+      time.sleep(5)
+    return name
 
 # Wait for a set of launched instances to exit the "pending" state
 # (i.e. either to start running or to fail and be terminated)
@@ -173,6 +184,7 @@ def launch_cluster(conn, opts, cluster_name):
     master_group.authorize(src_group=zoo_group)
     master_group.authorize('tcp', 22, 22, '0.0.0.0/0')
     master_group.authorize('tcp', 8080, 8081, '0.0.0.0/0')
+    master_group.authorize('tcp', 9998, 9999, '0.0.0.0/0')
     master_group.authorize('tcp', 50030, 50030, '0.0.0.0/0')
     master_group.authorize('tcp', 50070, 50070, '0.0.0.0/0')
     master_group.authorize('tcp', 60070, 60070, '0.0.0.0/0')
@@ -198,6 +210,7 @@ def launch_cluster(conn, opts, cluster_name):
     zoo_group.authorize('tcp', 2181, 2181, '0.0.0.0/0')
     zoo_group.authorize('tcp', 2888, 2888, '0.0.0.0/0')
     zoo_group.authorize('tcp', 3888, 3888, '0.0.0.0/0')
+  cluster_placement_group = get_or_make_placement_group(conn, cluster_name)
 
   # Check if instances are already running in our groups
   active_nodes = get_existing_cluster(conn, opts, cluster_name,
@@ -255,7 +268,7 @@ def launch_cluster(conn, opts, cluster_name):
           block_device_map = block_map)
       my_req_ids += [req.id for req in slave_reqs]
       i += 1
-    
+
     print "Waiting for spot instances to be granted..."
     try:
       while True:
@@ -303,7 +316,8 @@ def launch_cluster(conn, opts, cluster_name):
                               placement = zone,
                               min_count = num_slaves_this_zone,
                               max_count = num_slaves_this_zone,
-                              block_device_map = block_map)
+                              block_device_map = block_map,
+                              placement_group = cluster_placement_group)
         slave_nodes += slave_res.instances
         print "Launched %d slaves in %s, regid = %s" % (num_slaves_this_zone,
                                                         zone, slave_res.id)
@@ -321,7 +335,8 @@ def launch_cluster(conn, opts, cluster_name):
                          placement = opts.zone,
                          min_count = 1,
                          max_count = 1,
-                         block_device_map = block_map)
+                         block_device_map = block_map,
+                         placement_group = cluster_placement_group)
   master_nodes = master_res.instances
   print "Launched master in %s, regid = %s" % (zone, master_res.id)
 
@@ -386,7 +401,7 @@ def setup_cluster(conn, master_nodes, slave_nodes, zoo_nodes, opts, deploy_ssh_k
   if not opts.old_scripts:
     # NOTE: We should clone the repository before running deploy_files to
     # prevent ec2-variables.sh from being overwritten
-    ssh(master, opts, "rm -rf spark-ec2 && git clone https://github.com/mesos/spark-ec2.git")
+    ssh(master, opts, "rm -rf spark-ec2 && git clone https://github.com/haoyuan/spark-ec2.git")
 
   print "Deploying files to master..."
   deploy_files(conn, "deploy.generic", opts, master_nodes, slave_nodes,
@@ -411,7 +426,7 @@ def setup_standalone_cluster(master, slave_nodes, opts):
   slave_ips = '\n'.join([i.public_dns_name for i in slave_nodes])
   ssh(master, opts, "echo \"%s\" > spark/conf/slaves" % (slave_ips))
   ssh(master, opts, "/root/spark/bin/start-all.sh")
-  
+
 def setup_spark_cluster(master, opts):
   ssh(master, opts, "chmod u+x spark-ec2/setup.sh")
   ssh(master, opts, "spark-ec2/setup.sh")
@@ -526,7 +541,7 @@ def deploy_files(conn, root_dir, opts, master_nodes, slave_nodes, zoo_nodes,
               dest.write(text)
               dest.close()
   # rsync the whole directory over to the master machine
-  command = (("rsync -rv -e 'ssh -o StrictHostKeyChecking=no -i %s' " + 
+  command = (("rsync -rv -e 'ssh -o StrictHostKeyChecking=no -i %s' " +
       "'%s/' '%s@%s:/'") % (opts.identity_file, tmp_dir, opts.user, active_master))
   subprocess.check_call(command, shell=True)
   # Remove the temp directory we created above
@@ -603,12 +618,12 @@ def main():
         print "Terminating zoo..."
         for inst in zoo_nodes:
           inst.terminate()
-      
+
       # Delete security groups as well
       if opts.delete_groups:
         print "Deleting security groups (this will take some time)..."
         group_names = [cluster_name + "-master", cluster_name + "-slaves", cluster_name + "-zoo"]
-        
+
         attempt = 1;
         while attempt <= 3:
           print "Attempt %d" % attempt
@@ -624,7 +639,7 @@ def main():
                            from_port=rule.from_port,
                            to_port=rule.to_port,
                            src_group=grant)
-          
+
           # Sleep for AWS eventual-consistency to catch up, and for instances
           # to terminate
           time.sleep(30)  # Yes, it does have to be this long :-(
@@ -635,13 +650,13 @@ def main():
             except boto.exception.EC2ResponseError:
               success = False;
               print "Failed to delete security group " + group.name
-          
+
           # Unfortunately, group.revoke() returns True even if a rule was not
           # deleted, so this needs to be rerun if something fails
           if success: break;
-          
+
           attempt += 1
-          
+
         if not success:
           print "Failed to delete all security groups after 3 tries."
           print "Try re-running in a few minutes."
@@ -664,7 +679,7 @@ def main():
   elif action == "stop":
     response = raw_input("Are you sure you want to stop the cluster " +
         cluster_name + "?\nDATA ON EPHEMERAL DISKS WILL BE LOST, " +
-        "BUT THE CLUSTER WILL KEEP USING SPACE ON\n" + 
+        "BUT THE CLUSTER WILL KEEP USING SPACE ON\n" +
         "AMAZON EBS IF IT IS EBS-BACKED!!\n" +
         "Stop cluster " + cluster_name + " (y/N): ")
     if response == "y":
