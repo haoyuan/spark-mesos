@@ -265,7 +265,8 @@ def launch_cluster(conn, opts, cluster_name):
           key_name = opts.key_pair,
           security_groups = [slave_group],
           instance_type = opts.instance_type,
-          block_device_map = block_map)
+          block_device_map = block_map,
+          placement_group = cluster_placement_group)
       my_req_ids += [req.id for req in slave_reqs]
       i += 1
 
