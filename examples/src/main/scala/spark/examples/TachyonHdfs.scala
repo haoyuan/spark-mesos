@@ -26,8 +26,8 @@ object TachyonHdfs {
     Thread.sleep(wakeupTimeMs - System.currentTimeMillis)
   }
 
-  def writeFiles(sc: SparkContext, filePrefix: String, files: Int) {
-    System.out.println("TachyonHdfs writeFiles...");
+  def writeFilesToTachyon(sc: SparkContext, filePrefix: String, files: Int) {
+    System.out.println("TachyonHdfs writeFilesToTachyon...");
 
     val ids = new ArrayBuffer[Int]()
     for (i <- 0 until files) {
@@ -60,6 +60,9 @@ object TachyonHdfs {
         val starttimeMs = System.currentTimeMillis
         val tachyonClient = SparkEnv.get.tachyonClient
         val fileId = tachyonClient.createFile(filePrefix + "_" + i)
+        if (fileId == -1) {
+          throw new RuntimeException("Failed to create tachyon file " + filePrefix + "_" + i)
+        }
         val file = tachyonClient.getFile(fileId)
         file.open(OpType.WRITE_CACHE)
         for (k <- 0 until BLOCKS_PER_FILE) {
@@ -68,12 +71,14 @@ object TachyonHdfs {
         file.close()
         (System.currentTimeMillis - starttimeMs)
       }).collect().toSeq)
-    System.out.println("TEST_CASE " + TEST_CASE + " took " +
-      (System.currentTimeMillis - starttimeMs) + " ms.")
+    val timeusedMs = System.currentTimeMillis - starttimeMs
+    val throughput = (1000L * BLOCK_SIZE_BYTES * BLOCKS_PER_FILE * files) / timeusedMs / 1024 / 1024
+    System.out.println("TEST_CASE " + TEST_CASE + " took " + timeusedMs + " ms. Throughput is " +
+      throughput + " MB/sec. From " + starttimeMs + " to " + (starttimeMs + timeusedMs))
   }
 
-  def readFiles(sc: SparkContext, filePrefix: String, files: Int) {
-    System.out.println("TachyonHdfs readFiles...");
+  def readFilesFromTachyon(sc: SparkContext, filePrefix: String, files: Int) {
+    System.out.println("TachyonHdfs readFilesFromTachyon...");
 
     val ids = new ArrayBuffer[Int]()
     for (i <- 0 until files) {
@@ -110,8 +115,10 @@ object TachyonHdfs {
         file.close()
         (System.currentTimeMillis - starttimeMs)
       }).collect())
-    System.out.println("TEST_CASE " + TEST_CASE + " took " +
-      (System.currentTimeMillis - starttimeMs) + " ms.")
+    val timeusedMs = System.currentTimeMillis - starttimeMs
+    val throughput = (1000L * BLOCK_SIZE_BYTES * BLOCKS_PER_FILE * files) / timeusedMs / 1024 / 1024
+    System.out.println("TEST_CASE " + TEST_CASE + " took " + timeusedMs + " ms. Throughput is " +
+      throughput + " MB/sec. From " + starttimeMs + " to " + (starttimeMs + timeusedMs))
   }
 
   def main(args: Array[String]) {
@@ -134,9 +141,9 @@ object TachyonHdfs {
     TEST_CASE =args(6).toInt
 
     if (TEST_CASE == 1) {
-      writeFiles(sc, args(3), args(4).toInt)
+      writeFilesToTachyon(sc, args(3), args(4).toInt)
     } else if (TEST_CASE == 2) {
-      readFiles(sc, args(3), args(4).toInt)
+      readFilesFromTachyon(sc, args(3), args(4).toInt)
     } else {
       throw new RuntimeException("TEST_CASE " + TEST_CASE + " is out of the range.")
     }
