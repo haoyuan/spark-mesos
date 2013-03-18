@@ -11,15 +11,13 @@ import SparkContext._
 
 import tachyon.client.TachyonClient
 
-object SparkTachyonExample {
-  val folder = "/SparkTachyonExample"
-  var dependencyId1 = 0
-  var dependencyId2 = 0
+object TachyonExample {
+  val folder = "/TachyonExample"
 
   def endToEndTest(args: Array[String]) {
-    System.out.println("SparkTachyonExample end to end test is starting...");
+    System.out.println("TachyonExample end to end test is starting...");
 
-    val sc = new SparkContext(args(0), "SparkTachyonExample")
+    val sc = new SparkContext(args(0), "TachyonExample")
     SparkEnv.get.tachyonClient.deleteFile(folder)
 
     val data = Array(1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
@@ -39,12 +37,12 @@ object SparkTachyonExample {
   }
 
   def generateBinaryCodeTest(args: Array[String]) {
-    System.out.println("SparkTachyonExample generateTestBinaryCode is starting...");
+    System.out.println("TachyonExample generateTestBinaryCode is starting...");
 
-    var sc = new SparkContext(args(0), "SparkTachyonExample-GenerateTestBinaryCode")
+    var sc = new SparkContext(args(0), "TachyonExample-GenerateTestBinaryCode")
     val data = Array(1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
     val pData = sc.parallelize(data)
-    val dependencyId = pData.saveToTachyon("/ori3")
+    val dependencyId = pData.saveToTachyon(folder + "/ori")
     val dependency = SparkEnv.get.tachyonClient.getClientDependencyInfo(dependencyId)
     val rdd = SparkEnv.get.closureSerializer.newInstance().deserialize[RDD[_]](dependency.data.get(0))
     rdd.resetSparkContext(sc)
@@ -57,7 +55,7 @@ object SparkTachyonExample {
 
   def main(args: Array[String]) {
     endToEndTest(args);
-//    generateBinaryCodeTest(args)
+    generateBinaryCodeTest(args)
     System.exit(1);
   }
 }

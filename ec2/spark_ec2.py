@@ -83,10 +83,10 @@ def parse_args():
       help="If specified, launch slaves as spot instances with the given " +
             "maximum price (in dollars)")
   parser.add_option("--cluster-type", type="choice", metavar="TYPE",
-      choices=["mesos", "standalone"], default="standalone",
+      choices=["mesos", "standalone"], default="mesos",
       help="'mesos' for a Mesos cluster, 'standalone' for a standalone " +
            "Spark cluster (default: standalone)")
-  parser.add_option("--ganglia", action="store_true", default=True,
+  parser.add_option("--ganglia", action="store_true", default=False,
       help="Setup Ganglia monitoring on cluster (default: on). NOTE: " +
            "the Ganglia page will be publicly accessible")
   parser.add_option("--no-ganglia", action="store_false", dest="ganglia",
@@ -518,7 +518,9 @@ def deploy_files(conn, root_dir, opts, master_nodes, slave_nodes, zoo_nodes,
     "mapred_local_dirs": mapred_local_dirs,
     "spark_local_dirs": spark_local_dirs,
     "swap": str(opts.swap),
-    "modules": '\n'.join(modules)
+    "modules": '\n'.join(modules),
+    "s3n_awsAccessKeyId": os.getenv('AWS_ACCESS_KEY_ID'),
+    "s3n_awsSecretAccessKey": os.getenv('AWS_SECRET_ACCESS_KEY')
   }
 
   # Create a temp directory in which we will place all the files to be
