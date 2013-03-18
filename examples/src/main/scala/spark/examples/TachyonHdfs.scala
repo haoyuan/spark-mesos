@@ -9,6 +9,12 @@ import scala.collection.mutable.ArrayBuffer
 
 import spark._
 
+import org.apache.hadoop.fs._
+import org.apache.hadoop.conf._
+import org.apache.hadoop.io._
+import org.apache.hadoop.mapred._
+import org.apache.hadoop.util._
+
 import tachyon.client._
 
 object TachyonHdfs {
@@ -26,8 +32,8 @@ object TachyonHdfs {
     Thread.sleep(wakeupTimeMs - System.currentTimeMillis)
   }
 
-  def writeFilesToTachyon(sc: SparkContext, filePrefix: String, files: Int) {
-    System.out.println("TachyonHdfs writeFilesToTachyon...");
+  def writeFiles(sc: SparkContext, filePrefix: String, files: Int, tachyon: Boolean) {
+    System.out.println("TachyonHdfs writeFiles...");
 
     val ids = new ArrayBuffer[Int]()
     for (i <- 0 until files) {
@@ -58,17 +64,29 @@ object TachyonHdfs {
         rawBuf.flip()
 
         val starttimeMs = System.currentTimeMillis
-        val tachyonClient = SparkEnv.get.tachyonClient
-        val fileId = tachyonClient.createFile(filePrefix + "_" + i)
-        if (fileId == -1) {
-          throw new RuntimeException("Failed to create tachyon file " + filePrefix + "_" + i)
+
+        if (tachyon) {
+          val tachyonClient = SparkEnv.get.tachyonClient
+          val fileId = tachyonClient.createFile(filePrefix + "_" + i)
+          if (fileId == -1) {
+            throw new RuntimeException("Failed to create tachyon file " + filePrefix + "_" + i)
+          }
+          val file = tachyonClient.getFile(fileId)
+          file.open(OpType.WRITE_CACHE)
+          for (k <- 0 until BLOCKS_PER_FILE) {
+            file.append(rawBuf);
+          }
+          file.close()
+        } else {
+          val conf = new Configuration()
+          conf.set("fs.default.name", filePrefix)
+          val fs = FileSystem.get(conf)
+          val outputStream = fs.create(new Path(filePrefix + "_" + i))
+          for (k <- 0 until BLOCKS_PER_FILE) {
+            outputStream.write(rawBuf.array, 0, rawBuf.limit())
+          }
+          outputStream.close()
         }
-        val file = tachyonClient.getFile(fileId)
-        file.open(OpType.WRITE_CACHE)
-        for (k <- 0 until BLOCKS_PER_FILE) {
-          file.append(rawBuf);
-        }
-        file.close()
         (System.currentTimeMillis - starttimeMs)
       }).collect().toSeq)
     val timeusedMs = System.currentTimeMillis - starttimeMs
@@ -77,8 +95,8 @@ object TachyonHdfs {
       throughput + " MB/sec. From " + starttimeMs + " to " + (starttimeMs + timeusedMs))
   }
 
-  def readFilesFromTachyon(sc: SparkContext, filePrefix: String, files: Int) {
-    System.out.println("TachyonHdfs readFilesFromTachyon...");
+  def readFiles(sc: SparkContext, filePrefix: String, files: Int, tachyon: Boolean) {
+    System.out.println("TachyonHdfs readFiles...");
 
     val ids = new ArrayBuffer[Int]()
     for (i <- 0 until files) {
@@ -104,15 +122,27 @@ object TachyonHdfs {
         var sum: Long = 0
         val rawBuf = ByteBuffer.allocate(BLOCK_SIZE_BYTES)
         val starttimeMs = System.currentTimeMillis
-        val tachyonClient = SparkEnv.get.tachyonClient
-        val file = tachyonClient.getFile(filePrefix + "_" + i)
-        file.open(OpType.READ_TRY_CACHE)
-        val inBuf = file.readByteBuffer()
-        for (k <- 0 until BLOCKS_PER_FILE) {
-          inBuf.get(rawBuf.array());
-          sum += rawBuf.get(k % 16)
+        if (tachyon) {
+          val tachyonClient = SparkEnv.get.tachyonClient
+          val file = tachyonClient.getFile(filePrefix + "_" + i)
+          file.open(OpType.READ_TRY_CACHE)
+          val inBuf = file.readByteBuffer()
+          for (k <- 0 until BLOCKS_PER_FILE) {
+            inBuf.get(rawBuf.array());
+            sum += rawBuf.get(k % 16)
+          }
+          file.close()
+        } else {
+          val conf = new Configuration()
+          conf.set("fs.default.name", filePrefix)
+          val fs = FileSystem.get(conf)
+          val inputStream = fs.open(new Path(filePrefix + "_" + i))
+          var total = BLOCKS_PER_FILE * BLOCK_SIZE_BYTES
+          while (total > 0) {
+            total -= inputStream.read(rawBuf.array, 0, rawBuf.capacity())
+          }
+          inputStream.close()
         }
-        file.close()
         (System.currentTimeMillis - starttimeMs)
       }).collect())
     val timeusedMs = System.currentTimeMillis - starttimeMs
@@ -141,9 +171,13 @@ object TachyonHdfs {
     TEST_CASE =args(6).toInt
 
     if (TEST_CASE == 1) {
-      writeFilesToTachyon(sc, args(3), args(4).toInt)
+      writeFiles(sc, args(3), args(4).toInt, true)
     } else if (TEST_CASE == 2) {
-      readFilesFromTachyon(sc, args(3), args(4).toInt)
+      readFiles(sc, args(3), args(4).toInt, true)
+    } else if (TEST_CASE == 3) {
+      writeFiles(sc, args(3), args(4).toInt, false)
+    } else if (TEST_CASE == 4) {
+      readFiles(sc, args(3), args(4).toInt, false)
     } else {
       throw new RuntimeException("TEST_CASE " + TEST_CASE + " is out of the range.")
     }
