@@ -14,13 +14,16 @@ import tachyon.client._
 object TachyonHdfs {
   var BLOCK_SIZE_BYTES: Int = -1
   var BLOCKS_PER_FILE: Int = -1
-  var WAKEUP_TIMEMS: Long = -1;
+  var WAKEUP_TIMEMS: Long = -1
+  var TEST_CASE: Int = -1
+  var MSG: String = ""
 
   def waitToMs(wakeupTimeMs: Long) {
     if (System.currentTimeMillis > wakeupTimeMs) {
       throw new RuntimeException("wakeupTimeMs " + wakeupTimeMs +
         " is older than currentTimeMillis " + System.currentTimeMillis);
     }
+    Thread.sleep(wakeupTimeMs - System.currentTimeMillis)
   }
 
   def writeFiles(sc: SparkContext, filePrefix: String, files: Int) {
@@ -39,12 +42,14 @@ object TachyonHdfs {
         for (i <- 0 until 10000000) {
           sum += i
         }
+        val file = SparkEnv.get.tachyonClient.getFile(1)
         sum
       }).collect()
 
     waitToMs(WAKEUP_TIMEMS)
 
-    pIds.map(i => {
+    val starttimeMs = System.currentTimeMillis
+    System.out.println(pIds.map(i => {
         val rawBuf = ByteBuffer.allocate(BLOCK_SIZE_BYTES)
         rawBuf.order(ByteOrder.nativeOrder());
         for (k <- 0 until BLOCK_SIZE_BYTES / 4) {
@@ -62,7 +67,9 @@ object TachyonHdfs {
         }
         file.close()
         (System.currentTimeMillis - starttimeMs)
-      }).collect()
+      }).collect().toSeq)
+    System.out.println("TEST_CASE " + TEST_CASE + " took " +
+      (System.currentTimeMillis - starttimeMs) + " ms.")
   }
 
   def readFiles(sc: SparkContext, filePrefix: String, files: Int) {
@@ -81,12 +88,14 @@ object TachyonHdfs {
         for (i <- 0 until 10000000) {
           sum += i
         }
+        val file = SparkEnv.get.tachyonClient.getFile(1)
         sum
       }).collect()
 
     waitToMs(WAKEUP_TIMEMS)
 
-    pIds.map(i => {
+    val starttimeMs = System.currentTimeMillis
+    System.out.println(pIds.map(i => {
         var sum: Long = 0
         val rawBuf = ByteBuffer.allocate(BLOCK_SIZE_BYTES)
         val starttimeMs = System.currentTimeMillis
@@ -100,13 +109,16 @@ object TachyonHdfs {
         }
         file.close()
         (System.currentTimeMillis - starttimeMs)
-      }).collect()
+      }).collect())
+    System.out.println("TEST_CASE " + TEST_CASE + " took " +
+      (System.currentTimeMillis - starttimeMs) + " ms.")
   }
 
   def main(args: Array[String]) {
     if (args.length != 7) {
       System.out.println("./run spark.examples.TachyonHdfs <MESOS_MASTER_ADDR> " +
-        "<BLOCK_SIZE_BYTES> <BLOCKS_PER_FILE> <FILES_PREFIX> <NUMBER_OF_FILES> <WAKEUP_TIMEMS>");
+        "<BLOCK_SIZE_BYTES> <BLOCKS_PER_FILE> <FILES_PREFIX> <NUMBER_OF_FILES> <WAKEUP_TIME_SEC>" +
+        "<TEST_CASE(1-2)>");
 
       System.exit(-1)
     }
@@ -118,10 +130,19 @@ object TachyonHdfs {
 
     BLOCK_SIZE_BYTES = args(1).toInt
     BLOCKS_PER_FILE = args(2).toInt
-    WAKEUP_TIMEMS = args(6).toLong
+    WAKEUP_TIMEMS = args(5).toLong * 1000
+    TEST_CASE =args(6).toInt
 
-    writeFiles(sc, args(3), args(4).toInt);
-
-    readFiles(sc, args(3), args(4).toInt);
+    if (TEST_CASE == 1) {
+      writeFiles(sc, args(3), args(4).toInt)
+    } else if (TEST_CASE == 2) {
+      readFiles(sc, args(3), args(4).toInt)
+    } else {
+      throw new RuntimeException("TEST_CASE " + TEST_CASE + " is out of the range.")
+    }
+    MSG = "BLOCK_SIZE_BYTES: " + BLOCK_SIZE_BYTES + " BLOCKS_PER_FILE: " + BLOCKS_PER_FILE;
+    MSG += " FILES_PREFIX: " + args(3) + " NUMBER_OF_FILES: " + args(4).toInt;
+    MSG += " TEST_CASE: " + TEST_CASE
+    println(MSG)
   }
 }
