@@ -47,8 +47,10 @@ object TachyonHdfs {
     // Warm JVM
     pIds.map(i => {
         var sum = 0
-        for (i <- 0 until 10000000) {
-          sum += i
+        for (j <- 0 until 100) {
+          for (i <- 0 until 100000000) {
+            sum += i
+          }
         }
         if (tachyon) {
           val tachyonClient = SparkEnv.get.tachyonClient

@@ -143,6 +143,7 @@ private[spark] class CoarseMesosSchedulerBackend(
         val slaveId = offer.getSlaveId.toString
         val mem = getResource(offer.getResourcesList, "mem")
         val cpus = getResource(offer.getResourcesList, "cpus").toInt
+        System.out.println("Current offer: " + offer)
         if (totalCoresAcquired < maxCores && mem >= executorMemory && cpus >= 1 &&
             failuresBySlaveId.getOrElse(slaveId, 0) < MAX_SLAVE_FAILURES &&
             !slaveIdsWithExecutors.contains(slaveId)) {
@@ -161,6 +162,7 @@ private[spark] class CoarseMesosSchedulerBackend(
             .addResources(createResource("cpus", cpusToUse))
             .addResources(createResource("mem", executorMemory))
             .build()
+          System.out.println("Accept offer: " + task)
           d.launchTasks(offer.getId, Collections.singletonList(task), filters)
         } else {
           // Filter it out
