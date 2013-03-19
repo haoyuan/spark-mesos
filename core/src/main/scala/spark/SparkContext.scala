@@ -236,6 +236,10 @@ class SparkContext(
     new TachyonRDD[T](this, env.tachyonClient.listFiles(path, true))
   }
 
+  def readFromIntTachyon(path: String): RDD[Int] = {
+    new TachyonIntRDD(this, env.tachyonClient.listFiles(path, true))
+  }
+
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI, and return it as an RDD of Strings.
