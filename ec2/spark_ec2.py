@@ -83,7 +83,7 @@ def parse_args():
       help="If specified, launch slaves as spot instances with the given " +
             "maximum price (in dollars)")
   parser.add_option("--cluster-type", type="choice", metavar="TYPE",
-      choices=["mesos", "standalone"], default="mesos",
+      choices=["mesos", "standalone"], default="standalone",
       help="'mesos' for a Mesos cluster, 'standalone' for a standalone " +
            "Spark cluster (default: standalone)")
   parser.add_option("--ganglia", action="store_true", default=False,
