@@ -42,7 +42,7 @@ object SparkLRA {
       val numSlices = args(2).toInt
       points = sc.parallelize(generateData, numSlices).cache()
       println("Saving to " + path)
-      points.saveToTachyon(path)
+      points.saveToTachyon(null, path)
       // points.saveAsObjectFile(path)
     } else {
       println("Reading from " + path)

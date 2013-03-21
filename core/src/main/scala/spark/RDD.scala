@@ -618,8 +618,8 @@ abstract class RDD[T: ClassManifest](
       .saveAsSequenceFile(path)
   }
 
-  def saveToTachyon(path: String): Int = {
-    saveToTachyon(path, (x: T) => {
+  def saveToTachyon(inputPath: String, path: String): Int = {
+    saveToTachyon(inputPath, path, (x: T) => {
       SparkEnv.get.tachyonSerializer.newInstance().serialize(x)
     })
     // System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
@@ -651,14 +651,16 @@ abstract class RDD[T: ClassManifest](
     // dependencyId
   }
 
-  def saveToTachyon(path: String, f: T => ByteBuffer): Int = {
+  def saveToTachyon(inputPath: String, path: String, f: T => ByteBuffer): Int = {
     System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
 
     // TODO Traverse Spark RDD dependency to find the top RDDs.
     val parents = new ArrayList[java.lang.String]()
+    if (inputPath != null && !inputPath.isEmpty) {
+      parents.add(path)
+    }
     val children = new ArrayList[java.lang.String]()
-    val cmd = "/root/spark/run " +
-      "spark.examples.TrexRecompute ec2-174-129-146-28.compute-1.amazonaws.com:5050 "
+    val cmd = "/root/spark/run " + "spark.examples.TrexRecompute " + sc.master
     for (i <- 0 until partitions.size) {
       children.add(path + "/part_" + i);
     }

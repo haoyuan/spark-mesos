@@ -22,12 +22,12 @@ object TachyonExample {
 
     val data = Array(1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
     val pData = sc.parallelize(data)
-    pData.saveToTachyon(folder + "/ori")
+    pData.saveToTachyon(null, folder + "/ori")
 
     val res = pData.filter(x => (x % 2 == 0))
     var localValue = res.collect()
     println("++++++++++++\n" + localValue.deep.mkString("\n"))
-    res.saveToTachyon(folder + "/res")
+    res.saveToTachyon(null, folder + "/res")
 
     val tData = sc.readFromTachyon[Int](folder + "/ori")
     tData.collect().foreach(ele => {System.out.print("ORIX: " + ele + " :ori\n")})
@@ -42,7 +42,7 @@ object TachyonExample {
     var sc = new SparkContext(args(0), "TachyonExample-GenerateTestBinaryCode")
     val data = Array(1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
     val pData = sc.parallelize(data)
-    val dependencyId = pData.saveToTachyon(folder + "/ori")
+    val dependencyId = pData.saveToTachyon(null, folder + "/ori")
     val dependency = SparkEnv.get.tachyonClient.getClientDependencyInfo(dependencyId)
     val rdd = SparkEnv.get.closureSerializer.newInstance().deserialize[RDD[_]](dependency.data.get(0))
     rdd.resetSparkContext(sc)
