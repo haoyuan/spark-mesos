@@ -16,18 +16,18 @@ object TachyonGenerateTextData {
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
     val file = sc.textFile(args(1))
 
-    file.count()
+    val count1 = file.count()
     val countTime1Ms = ((System.currentTimeMillis() - timeMs) / 1000)
     timeMs = System.currentTimeMillis()
 
-    file.count()
+    val count2 = file.count()
     val countTime2Ms = ((System.currentTimeMillis() - timeMs) / 1000)
     timeMs = System.currentTimeMillis()
 
     file.saveToTachyon(null, args(2))
 
-    println(JOB + " APPLICATION Count1 used " + countTime1Ms + " sec")
-    println(JOB + " APPLICATION Count2 used " + countTime2Ms + " sec")
+    println(JOB + " APPLICATION Count1 used " + countTime1Ms + " sec. result " + count1)
+    println(JOB + " APPLICATION Count2 used " + countTime2Ms + " sec. result " + count2)
     println(JOB + " APPLICATION used " + ((System.currentTimeMillis() - timeMs) / 1000) + " sec")
     System.exit(0)
   }

@@ -33,8 +33,20 @@ object TachyonJob {
     val midStartTimeMs = startTimeMs
     var InputPath: String = args(1) + "/" + jobId
     var OutputPath: String = args(2) + "/" + jobId + "/grepresult"
-    val rawFile = sc.readFromTachyon[String](InputPath)
-    println(rawFile.count())
+    // val rawFile = sc.readFromTachyon[String](InputPath)
+    val rawFile = sc.readFromByteBufferTachyon(InputPath)
+    // println(rawFile.count())
+    rawFile.map(buf => {
+      val charsBuf = buf.asCharBuffer
+      val length = charsBuf.limit()
+      var sum = 0
+      for (i <- 0 until length) {
+        if (charsBuf.get() == 'v') {
+          sum += 1
+        }
+      }
+      sum
+    }).collect().foreach(println)
     // val filtered = rawFile.filter(line => line.contains("the"))
     // filtered.saveToTachyon(InputPath, OutputPath)
     printTimeMs(JOB, midStartTimeMs, "Grep")
