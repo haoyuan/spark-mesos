@@ -9,16 +9,10 @@ import java.nio.ByteBuffer
 
 import tachyon.client._
 
-class TachyonRDDPartition(val rddId: Int, fileId: Int, val locations: Seq[String])
-  extends Partition {
-
-  override val index: Int = fileId
-}
-
-class TachyonRDD[T: ClassManifest](
+class TachyonByteBufferRDD(
     @transient sc: SparkContext,
     val files: java.util.List[java.lang.Integer])
-  extends RDD[T](sc, Nil) with Logging {
+  extends RDD[ByteBuffer](sc, Nil) with Logging {
 
   override def getPartitions: Array[Partition] = {
     val tachyonClient = sc.env.tachyonClient
@@ -30,23 +24,24 @@ class TachyonRDD[T: ClassManifest](
     array
   }
 
-  override def compute(theSplit: Partition, context: TaskContext) = new Iterator[T] {
+  override def compute(theSplit: Partition, context: TaskContext) = new Iterator[ByteBuffer] {
     val tachyonClient = SparkEnv.get.tachyonClient
     val fileId = theSplit.asInstanceOf[TachyonRDDPartition].index
     val file = tachyonClient.getFile(fileId)
     file.open(tachyon.client.OpType.READ_TRY_CACHE)
     val buf = file.readByteBuffer()
+    var finished = false
 
     override def hasNext: Boolean = {
-      buf.hasRemaining
+      return (!finished)
     }
 
-    override def next: T = {
-      if (!buf.hasRemaining) {
+    override def next: ByteBuffer = {
+      if (finished) {
         throw new NoSuchElementException("End of stream")
       }
-      val ret : T = SparkEnv.get.tachyonSerializer.newInstance().deserialize[T](buf)
-      ret
+      finished = true
+      buf
     }
 
     private def close() {

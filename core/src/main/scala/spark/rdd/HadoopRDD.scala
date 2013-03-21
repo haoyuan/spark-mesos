@@ -23,7 +23,7 @@ import spark.{Dependency, Logging, Partition, RDD, SerializableWritable, SparkCo
  */
 private[spark] class HadoopPartition(rddId: Int, idx: Int, @transient s: InputSplit)
   extends Partition {
-  
+
   val inputSplit = new SerializableWritable[InputSplit](s)
 
   override def hashCode(): Int = (41 * (41 + rddId) + idx).toInt

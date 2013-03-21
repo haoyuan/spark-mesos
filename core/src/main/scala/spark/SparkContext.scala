@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.net.{URI, URLClassLoader}
 import java.lang.ref.WeakReference
+import java.nio.ByteBuffer
 
 import scala.collection.Map
 import scala.collection.generic.Growable
@@ -238,6 +239,10 @@ class SparkContext(
 
   def readFromIntTachyon(path: String): RDD[Int] = {
     new TachyonIntRDD(this, env.tachyonClient.listFiles(path, true))
+  }
+
+  def readFromByteBufferTachyon(path: String): RDD[ByteBuffer] = {
+    new TachyonByteBufferRDD(this, env.tachyonClient.listFiles(path, true))
   }
 
   /**

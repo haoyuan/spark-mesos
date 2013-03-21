@@ -619,12 +619,46 @@ abstract class RDD[T: ClassManifest](
   }
 
   def saveToTachyon(path: String): Int = {
+    saveToTachyon(path, (x: T) => {
+      SparkEnv.get.tachyonSerializer.newInstance().serialize(x)
+    })
+    // System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
+
+    // // TODO Traverse Spark RDD dependency to find the top RDDs.
+    // val parents = new ArrayList[java.lang.String]()
+    // val children = new ArrayList[java.lang.String]()
+    // val cmd = "/root/spark/run spark.examples.TrexRecompute ec2-174-129-146-28.compute-1.amazonaws.com:5050 "
+    // for (i <- 0 until partitions.size) {
+    //   children.add(path + "/part_" + i);
+    // }
+    // val data = new ArrayList[ByteBuffer]()
+    // data.add(sc.env.closureSerializer.newInstance().serialize(this))
+    // val dependencyId = sc.env.tachyonClient.createDependency(parents, children, cmd, data,
+    //   "comment", "Spark", "v0.7.0", tachyon.DependencyType.Wide)
+
+    // val clientDependencyInfo = sc.env.tachyonClient.getClientDependencyInfo(dependencyId)
+
+    // sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
+    //   val tachyonClient = SparkEnv.get.tachyonClient
+    //   val file = tachyonClient.getFile(clientDependencyInfo.children.get(context.splitId));
+    //   file.open(tachyon.client.OpType.WRITE_CACHE);
+    //   val buf = new ArrayBuffer[T]()
+    //   buf ++= iter
+    //   file.append(SparkEnv.get.tachyonSerializer.newInstance().serialize[ArrayBuffer[T]](buf));
+    //   file.close();
+    // })
+
+    // dependencyId
+  }
+
+  def saveToTachyon(path: String, f: T => ByteBuffer): Int = {
     System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
 
     // TODO Traverse Spark RDD dependency to find the top RDDs.
     val parents = new ArrayList[java.lang.String]()
     val children = new ArrayList[java.lang.String]()
-    val cmd = "/root/spark/run spark.examples.TrexRecompute ec2-174-129-146-28.compute-1.amazonaws.com:5050 "
+    val cmd = "/root/spark/run " +
+      "spark.examples.TrexRecompute ec2-174-129-146-28.compute-1.amazonaws.com:5050 "
     for (i <- 0 until partitions.size) {
       children.add(path + "/part_" + i);
     }
@@ -639,9 +673,9 @@ abstract class RDD[T: ClassManifest](
       val tachyonClient = SparkEnv.get.tachyonClient
       val file = tachyonClient.getFile(clientDependencyInfo.children.get(context.splitId));
       file.open(tachyon.client.OpType.WRITE_CACHE);
-      val buf = new ArrayBuffer[T]()
-      buf ++= iter
-      file.append(SparkEnv.get.tachyonSerializer.newInstance().serialize[ArrayBuffer[T]](buf));
+      while (iter.hasNext) {
+        file.append(f(iter.next))
+      }
       file.close();
     })
 
