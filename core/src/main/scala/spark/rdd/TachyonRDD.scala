@@ -36,6 +36,7 @@ class TachyonRDD[T: ClassManifest](
     val file = tachyonClient.getFile(fileId)
     file.open(tachyon.client.OpType.READ_TRY_CACHE)
     val buf = file.readByteBuffer()
+    val tachyonSerializer = SparkEnv.get.tachyonSerializer.newInstance()
 
     override def hasNext: Boolean = {
       buf.hasRemaining
@@ -45,7 +46,7 @@ class TachyonRDD[T: ClassManifest](
       if (!buf.hasRemaining) {
         throw new NoSuchElementException("End of stream")
       }
-      val ret : T = SparkEnv.get.tachyonSerializer.newInstance().deserialize[T](buf)
+      val ret : T = tachyonSerializer.deserialize[T](buf)
       ret
     }
 
@@ -59,7 +60,7 @@ class TachyonRDD[T: ClassManifest](
   }
 
   override def getPreferredLocations(split: Partition): Seq[String] = {
-    println("***** TachyonRDD loc: " + split.asInstanceOf[TachyonRDDPartition].locations)
+    // println("***** TachyonRDD loc: " + split.asInstanceOf[TachyonRDDPartition].locations)
     split.asInstanceOf[TachyonRDDPartition].locations
   }
 }

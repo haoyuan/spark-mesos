@@ -20,6 +20,15 @@ object TachyonJob {
     val sc = new SparkContext(args(0), JOB,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
+    val warm = sc.parallelize(1 to 1000, 1000).map(i => {
+        var sum = 0
+        for (i <- 0 until 1000) {
+          sum += i
+        }
+        sum
+      }).collect()
+    println("Just warmed up.")
+
     var startTimeMs = System.currentTimeMillis()
     val midStartTimeMs = startTimeMs
     var InputPath: String = args(1) + "/" + jobId

@@ -99,6 +99,8 @@ private[spark] class TaskSetManager(sched: ClusterScheduler, val taskSet: TaskSe
   // Add a task to all the pending-task lists that it should be on.
   private def addPendingTask(index: Int) {
     val locations = tasks(index).preferredLocations.toSet & sched.hostsAlive
+    // println("+++++ addPendingTask " + index + " " + locations.toSeq + " " +
+    //   tasks(index).preferredLocations.toSet + " " + sched.hostsAlive)
     if (locations.size == 0) {
       pendingTasksWithNoPrefs += index
     } else {
