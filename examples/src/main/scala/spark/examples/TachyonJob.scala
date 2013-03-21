@@ -16,7 +16,7 @@ object TachyonJob {
     }
 
     val jobId = args(3).toInt
-    val JOB = "TachyonGenerateTextData " + jobId + " : " + args(1) + " to " + args(2)
+    val JOB = "TachyonJob " + jobId + " : " + args(1) + " to " + args(2)
     val sc = new SparkContext(args(0), JOB,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
@@ -25,7 +25,7 @@ object TachyonJob {
     var InputPath: String = args(1) + "/" + jobId
     var OutputPath: String = args(2) + "/" + jobId + "/grepresult"
     val rawFile = sc.readFromTachyon[String](InputPath)
-    val filtered = rawFile.filter(line => line.contains("95"))
+    val filtered = rawFile.filter(line => line.contains("the"))
     filtered.saveToTachyon(InputPath, OutputPath)
     printTimeMs(JOB, midStartTimeMs, "Grep")
 
