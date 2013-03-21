@@ -114,6 +114,7 @@ class HadoopRDD[K, V](
   override def getPreferredLocations(split: Partition): Seq[String] = {
     // TODO: Filtering out "localhost" in case of file:// URLs
     val hadoopSplit = split.asInstanceOf[HadoopPartition]
+    println("***** HadoopRDD locs:" + hadoopSplit.inputSplit.value.getLocations.filter(_ != "localhost"))
     hadoopSplit.inputSplit.value.getLocations.filter(_ != "localhost")
   }
 

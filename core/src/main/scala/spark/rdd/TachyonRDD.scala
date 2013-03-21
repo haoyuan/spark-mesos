@@ -59,6 +59,7 @@ class TachyonRDD[T: ClassManifest](
   }
 
   override def getPreferredLocations(split: Partition): Seq[String] = {
+    println("***** TachyonRDD loc: " + split.asInstanceOf[TachyonRDDPartition].locations)
     split.asInstanceOf[TachyonRDDPartition].locations
   }
 }
