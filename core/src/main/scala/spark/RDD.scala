@@ -657,7 +657,7 @@ abstract class RDD[T: ClassManifest](
     // TODO Traverse Spark RDD dependency to find the top RDDs.
     val parents = new ArrayList[java.lang.String]()
     if (inputPath != null && !inputPath.isEmpty) {
-      parents.add(path)
+      parents.add(inputPath)
     }
     val children = new ArrayList[java.lang.String]()
     val cmd = "/root/spark/run " + "spark.examples.TrexRecompute " + sc.master
