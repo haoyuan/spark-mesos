@@ -34,8 +34,9 @@ object TachyonJob {
     var InputPath: String = args(1) + "/" + jobId
     var OutputPath: String = args(2) + "/" + jobId + "/grepresult"
     val rawFile = sc.readFromTachyon[String](InputPath)
-    val filtered = rawFile.filter(line => line.contains("the"))
-    filtered.saveToTachyon(InputPath, OutputPath)
+    println(rawFile.count())
+    // val filtered = rawFile.filter(line => line.contains("the"))
+    // filtered.saveToTachyon(InputPath, OutputPath)
     printTimeMs(JOB, midStartTimeMs, "Grep")
 
     System.exit(0)
