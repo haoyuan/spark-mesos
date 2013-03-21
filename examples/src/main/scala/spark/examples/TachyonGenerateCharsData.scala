@@ -28,10 +28,11 @@ object TachyonGenerateCharsData {
     // timeMs = System.currentTimeMillis()
 
     file.saveToTachyon(null, args(2), (str: String) => {
-      val buf = ByteBuffer.allocate(str.length() * 2)
+      val buf = ByteBuffer.allocate(str.length() * 2 + 2)
       buf.order(ByteOrder.nativeOrder())
       val charBuf = buf.asCharBuffer()
       charBuf.put(str)
+      charBuf.put('\n')
       buf
       })
 
