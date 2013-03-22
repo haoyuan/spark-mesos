@@ -3,6 +3,9 @@ package spark.examples
 import java.util.ArrayList
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.HashMap
+import java.util.Iterator
+import java.util.Map
 
 import spark._
 import spark.SparkContext._
@@ -28,9 +31,10 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     //  Warm up.
     ///////////////////////////////////////////////////////////////////////////////
-    val warm = sc.parallelize(1 to 1000, 1000).map(i => {
+    val WARMUP_NUM = 3000
+    val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
-        for (i <- 0 until 10000) {
+        for (i <- 0 until WARMUP_NUM) {
           sum += i
         }
         sum
@@ -146,23 +150,32 @@ object TachyonJob {
         val charsBuf = buf.asCharBuffer
         val length = charsBuf.limit()
         var sum = 0
-        val stringArray: ArrayList[String] = new ArrayList[String]()
+        val stringArray = new HashMap[String, Int]()
         val charArray: Array[Char] = new Array[Char](10000)
         var currentPos: Int = 0
         for (i <- 0 until length) {
           charArray(currentPos) = charsBuf.get()
           if (charArray(currentPos) == '\n' || charArray(currentPos) == ' ') {
-            stringArray.add(String.valueOf(charArray, 0, currentPos))
+            val tStr = String.valueOf(charArray, 0, currentPos)
+            if (stringArray.containsKey(tStr)) {
+              stringArray.put(tStr, stringArray.get(tStr) + 1)
+            } else {
+              stringArray.put(tStr, 1)
+            }
             currentPos = 0
           } else {
             currentPos += 1
           }
         }
-        stringArray
-        val res : Array[String] = stringArray.toArray( new Array[String](stringArray.size()) )
+        val it = stringArray.entrySet().iterator()
+        val result = new ArrayList[(String, Int)]
+        while (it.hasNext()) {
+          var entry: Map.Entry[String, Int] = it.next
+          result.add((entry.getKey(), entry.getValue()))
+        }
+        val res : Array[(String, Int)] = result.toArray(new Array[(String, Int)](result.size()) )
         res.toSeq
-      }).map(word => (word, 1))
-        .reduceByKey(_ + _, 5)
+      }).reduceByKey(_ + _, 5)
 
       counts.saveToTachyon(InputPath, OutputPath, (pairData: (String, Int)) => {
         var sum = 0;
