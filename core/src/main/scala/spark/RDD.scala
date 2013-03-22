@@ -651,6 +651,8 @@ abstract class RDD[T: ClassManifest](
     // dependencyId
   }
 
+  var tachyon_serializer: T => ByteBuffer = null
+
   def saveToTachyon(inputPath: String, path: String, f: T => ByteBuffer): Int = {
     System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
 
@@ -660,10 +662,11 @@ abstract class RDD[T: ClassManifest](
       parents.add(inputPath)
     }
     val children = new ArrayList[java.lang.String]()
-    val cmd = "/root/spark/run " + "spark.examples.TrexRecompute " + sc.master
+    val cmd = "/root/spark/run spark.TachyonRecompute " + sc.master
     for (i <- 0 until partitions.size) {
       children.add(path + "/part_" + i);
     }
+    tachyon_serializer = f
     val data = new ArrayList[ByteBuffer]()
     data.add(sc.env.closureSerializer.newInstance().serialize(this))
     val dependencyId = sc.env.tachyonClient.createDependency(parents, children, cmd, data,
@@ -673,12 +676,12 @@ abstract class RDD[T: ClassManifest](
 
     sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
       val tachyonClient = SparkEnv.get.tachyonClient
-      val file = tachyonClient.getFile(clientDependencyInfo.children.get(context.splitId));
-      file.open(tachyon.client.OpType.WRITE_CACHE);
+      val file = tachyonClient.getFile(clientDependencyInfo.children.get(context.splitId))
+      file.open(tachyon.client.OpType.WRITE_CACHE)
       while (iter.hasNext) {
-        file.append(f(iter.next))
+        file.append(tachyon_serializer(iter.next))
       }
-      file.close();
+      file.close()
     })
 
     dependencyId
@@ -690,12 +693,12 @@ abstract class RDD[T: ClassManifest](
 
     sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
       val tachyonClient = SparkEnv.get.tachyonClient
-      val file = tachyonClient.getFile(dependency.children.get(context.splitId));
-      file.open(tachyon.client.OpType.WRITE_CACHE);
-      val buf = new ArrayBuffer[T]()
-      buf ++= iter
-      file.append(SparkEnv.get.tachyonSerializer.newInstance().serialize[ArrayBuffer[T]](buf));
-      file.close();
+      val file = tachyonClient.getFile(dependency.children.get(context.splitId))
+      file.open(tachyon.client.OpType.WRITE_CACHE)
+      while (iter.hasNext) {
+        file.append(tachyon_serializer(iter.next))
+      }
+      file.close()
     },
     partitions,
     false)
