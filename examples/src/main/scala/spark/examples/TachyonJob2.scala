@@ -2,6 +2,7 @@ package spark.examples
 
 import java.util.ArrayList
 import java.nio.ByteBuffer
+import java.nio.CharBuffer
 import java.nio.ByteOrder
 import java.util.HashMap
 import java.util.Iterator
@@ -10,7 +11,7 @@ import java.util.Map
 import spark._
 import spark.SparkContext._
 
-object TachyonJob {
+object TachyonJob2 {
   def printTimeMs(MSG: String, startTimeMs: Long, EndMsg: String) {
     val timeTakenMs = System.currentTimeMillis() - startTimeMs
     println(MSG + " APPLICATION used " + timeTakenMs + " ms " + EndMsg)
@@ -18,13 +19,13 @@ object TachyonJob {
 
   def main(args: Array[String]) {
     if (args.length != 4) {
-      println("Usage: ./run spark.examples.TachyonJob <SchedulerMaster> "
+      println("Usage: ./run spark.examples.TachyonJob2 <SchedulerMaster> "
         + "<InputData> <OutputData> <JobId>")
       System.exit(-1)
     }
 
     val jobId = args(3).toInt
-    val JOB = "TachyonJob " + jobId + " : "
+    val JOB = "TachyonJob2 " + jobId + " : "
     val sc = new SparkContext(args(0), JOB,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
@@ -56,37 +57,27 @@ object TachyonJob {
       val charsBuf = buf.asCharBuffer
       val length = charsBuf.limit()
       var sum = 0
-      val stringArray: ArrayList[String] = new ArrayList[String]()
-      val charArray: Array[Char] = new Array[Char](5000)
-      var currentPos: Int = 0
+      val charArray: Array[Char] = new Array[Char](length)
+      var currentPos = 0
       for (i <- 0 until length) {
-        charArray(currentPos) = charsBuf.get()
-        if (charArray(currentPos) == '\n') {
-          val str = String.valueOf(charArray, 0, currentPos)
-          if (str.contains("the")) {
-            stringArray.add(str)
-          }
-          currentPos = 0
-        } else {
-          currentPos += 1
+        val char = charsBuf.get()
+        if (char == ' ' || char == '\n' ||
+         (char <= 'z' && char >= 'a') ||
+         (char <= 'Z' && char >= 'A') ||
+         (char <= '9' && char >= '0')) {
+          charArray(currentPos) = char
+          currentPos = currentPos + 1
         }
       }
-      stringArray
+      println("xxxxxx " + currentPos)
+      val res = ByteBuffer.allocate(currentPos * 2)
+      res.order(ByteOrder.nativeOrder())
+      val tbuf = res.asCharBuffer()
+      tbuf.put(charArray, 0, currentPos)
+      res
     })
 
-    cleanedData.saveToTachyon(InputPath, OutputPath, (str: ArrayList[String]) => {
-      var sum = 0;
-      for (k <- 0 until str.size) {
-        sum = sum + str.get(k).length * 2 + 2
-      }
-      val buf = ByteBuffer.allocate(sum)
-      buf.order(ByteOrder.nativeOrder())
-      val charBuf = buf.asCharBuffer()
-
-      for (k <- 0 until str.size) {
-        charBuf.put(str.get(k))
-        charBuf.put('\n')
-      }
+    cleanedData.saveToTachyon(InputPath, OutputPath, (buf: ByteBuffer) => {
       buf
     })
 
@@ -96,9 +87,9 @@ object TachyonJob {
     // Count how many lines have the word
     ///////////////////////////////////////////////////////////////////////////////
 
-    val keywords = Array('a', 'b', 'c', 'd', 'v', 'f', 'g', 'h', 'i', 'j')
+    val keywords = Array('v', 'b', 'c', 'd', 'v', 'f', 'g', 'h', 'i', 'j')
     InputPath = OutputPath
-    for (round <- 0 until 10) {
+    for (round <- 0 until 1) {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/count" + round + keywords(round)
       val data = sc.readFromByteBufferTachyon(InputPath)
@@ -106,21 +97,9 @@ object TachyonJob {
         val charsBuf = buf.asCharBuffer
         val length = charsBuf.limit()
         var sum = 0
-        var currentPos: Int = 0
-        var good: Boolean = false
         for (i <- 0 until length) {
-          var t = charsBuf.get()
-          if (t == '\n') {
-            if (good) {
-              sum = sum + 1
-            }
-            good = false
-            currentPos = 0
-          } else {
-            currentPos += 1
-            if (t == keywords(round)) {
-              good = true
-            }
+          if (charsBuf.get() == keywords(round)) {
+            sum = sum + 1
           }
         }
         sum
@@ -142,7 +121,7 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     // Word Count
     ///////////////////////////////////////////////////////////////////////////////
-    for (round <- 0 until 10) {
+    for (round <- 0 until 1) {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/wordcount" + round
       val data = sc.readFromByteBufferTachyon(InputPath)
@@ -151,7 +130,7 @@ object TachyonJob {
         val length = charsBuf.limit()
         var sum = 0
         val stringArray = new HashMap[String, Int]()
-        val charArray: Array[Char] = new Array[Char](5000)
+        val charArray: Array[Char] = new Array[Char](10000)
         var currentPos: Int = 0
         for (i <- 0 until length) {
           charArray(currentPos) = charsBuf.get()
