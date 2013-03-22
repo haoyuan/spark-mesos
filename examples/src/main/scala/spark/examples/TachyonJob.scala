@@ -15,7 +15,7 @@ object TachyonJob {
 
   def main(args: Array[String]) {
     if (args.length != 4) {
-      println("Usage: ./run spark.examples.TachyonGrep <SchedulerMaster> "
+      println("Usage: ./run spark.examples.TachyonJob <SchedulerMaster> "
         + "<InputData> <OutputData> <JobId>")
       System.exit(-1)
     }
@@ -28,7 +28,7 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     //  Warm up.
     ///////////////////////////////////////////////////////////////////////////////
-    val warm = sc.parallelize(1 to 1000, 100).map(i => {
+    val warm = sc.parallelize(1 to 10000, 1000).map(i => {
         var sum = 0
         for (i <- 0 until 1000) {
           sum += i
@@ -151,7 +151,7 @@ object TachyonJob {
         var currentPos: Int = 0
         for (i <- 0 until length) {
           charArray(currentPos) = charsBuf.get()
-          if (charArray(currentPos) == '\n') {
+          if (charArray(currentPos) == '\n' || charArray(currentPos) == ' ') {
             stringArray.add(String.valueOf(charArray, 0, currentPos))
             currentPos = 0
           } else {
@@ -162,7 +162,7 @@ object TachyonJob {
         val res : Array[String] = stringArray.toArray( new Array[String](stringArray.size()) )
         res.toSeq
       }).map(word => (word, 1))
-        .reduceByKey(_ + _, 3)
+        .reduceByKey(_ + _, 5)
 
       counts.saveToTachyon(InputPath, OutputPath, (pairData: (String, Int)) => {
         var sum = 0;
