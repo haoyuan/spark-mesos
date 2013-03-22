@@ -23,6 +23,17 @@ object TachyonRecompute {
     val tachyonClient = TachyonClient.getClient(args(1))
     val dependency = tachyonClient.getClientDependencyInfo(args(2).toInt)
     val sparkContext = new SparkContext(args(0), "Recomputing dependency " + args(2))
+
+    val WARMUP_NUM = 10
+    val warm = sparkContext.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
+        var sum = 0
+        for (i <- 0 until WARMUP_NUM) {
+          sum += i
+        }
+        sum
+      }).collect()
+    println("Just warmed up.")
+
     val rdd = SparkEnv.get.closureSerializer.newInstance().deserialize[RDD[_]](dependency.data.get(0))
     rdd.resetSparkContext(sparkContext)
     val arraybuffer = new ArrayBuffer[Int]()

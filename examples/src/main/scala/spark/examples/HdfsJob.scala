@@ -25,10 +25,10 @@ object HdfsJob {
     val sc = new SparkContext(args(0), JOB,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
-    val WARMUP_NUM = 3000
     ///////////////////////////////////////////////////////////////////////////////
     //  Warm up.
     ///////////////////////////////////////////////////////////////////////////////
+    val WARMUP_NUM = 3000
     val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
         for (i <- 0 until WARMUP_NUM) {
