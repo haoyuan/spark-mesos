@@ -654,7 +654,8 @@ abstract class RDD[T: ClassManifest](
   var tachyon_serializer: T => ByteBuffer = null
 
   def saveToTachyon(inputPath: String, path: String, f: T => ByteBuffer): Int = {
-    System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
+    System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " input path " +
+      inputPath + " output path " + path + " size " + partitions.size)
 
     // TODO Traverse Spark RDD dependency to find the top RDDs.
     val parents = new ArrayList[java.lang.String]()

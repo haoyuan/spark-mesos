@@ -48,16 +48,50 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     var midStartTimeMs = startTimeMs
     var InputPath: String = args(1) + "/" + jobId
+    var rawFile = sc.readFromByteBufferTachyon(InputPath)
+    val loadData = rawFile.map(buf => {
+      1
+    }).reduce(_ + _)
+
+    printTimeMs(JOB, midStartTimeMs, "Load data into memory: " + InputPath + " ; " + loadData
+      + " files in total")
+
+    ///////////////////////////////////////////////////////////////////////////////
+    //  Clean data.
+    ///////////////////////////////////////////////////////////////////////////////
+    midStartTimeMs = startTimeMs
+    InputPath = args(1) + "/" + jobId
     var OutputPath: String = args(2) + "/" + jobId + "/cleanedData"
     // val rawFile = sc.readFromTachyon[String](InputPath)
-    val rawFile = sc.readFromByteBufferTachyon(InputPath)
-    // println(rawFile.count())
+    rawFile = sc.readFromByteBufferTachyon(InputPath)
+    // val cleanedData = rawFile.map(buf => {buf})
+    // cleanedData.saveToTachyon(InputPath, OutputPath, (oriBuf: ByteBuffer) => {
+    //   val buf = ByteBuffer.allocate(oriBuf.limit())
+    //   buf.order(ByteOrder.nativeOrder())
+    //   val charBuf = buf.asCharBuffer()
+
+    //   var oriCharBuf = oriBuf.asCharBuffer
+    //   val length = oriCharBuf.limit()
+    //   var lastChar: Char = ' '
+    //   var curChar: Char = ' '
+    //   for (i <- 0 until length) {
+    //     curChar = oriCharBuf.get()
+    //     if (curChar == ' ' && curChar == lastChar) {
+    //     } else {
+    //       charBuf.put(curChar)
+    //       lastChar = curChar
+    //     }
+    //   }
+    //   buf.limit(charBuf.position * 2)
+    //   buf
+    // })
+
     val cleanedData = rawFile.map(buf => {
       val charsBuf = buf.asCharBuffer
       val length = charsBuf.limit()
       var sum = 0
       val stringArray: ArrayList[String] = new ArrayList[String]()
-      val charArray: Array[Char] = new Array[Char](5000)
+      val charArray: Array[Char] = new Array[Char](1000)
       var currentPos: Int = 0
       for (i <- 0 until length) {
         charArray(currentPos) = charsBuf.get()
