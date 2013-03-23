@@ -60,7 +60,7 @@ object HdfsJob {
 
     val keywords = Array('v', 'b', 'c', 'd', 'v', 'f', 'g', 'h', 'i', 'j')
     InputPath = OutputPath
-    for (round <- 0 until 10) {
+    for (round <- 0 until 5) {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/count" + round + keywords(round)
       val data = sc.textFile(InputPath)
@@ -81,7 +81,7 @@ object HdfsJob {
     ///////////////////////////////////////////////////////////////////////////////
     // Word Count
     ///////////////////////////////////////////////////////////////////////////////
-    for (round <- 0 until 10) {
+    for (round <- 0 until 5) {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/wordcount" + round
       val data = sc.textFile(InputPath)
