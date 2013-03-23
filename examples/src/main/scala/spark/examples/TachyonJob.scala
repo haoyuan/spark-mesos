@@ -183,46 +183,32 @@ object TachyonJob {
         val charsBuf = buf.asCharBuffer
         val length = charsBuf.limit()
         var sum = 0
-        val stringArray = new HashMap[String, Int]()
-        val charArray: Array[Char] = new Array[Char](5000)
-        var currentPos: Int = 0
+        val charMap = new HashMap[Char, Int]()
+        var char: Char = ' '
         for (i <- 0 until length) {
-          charArray(currentPos) = charsBuf.get()
-          if (charArray(currentPos) == '\n' || charArray(currentPos) == ' ') {
-            val tStr = String.valueOf(charArray, 0, currentPos)
-            if (stringArray.containsKey(tStr)) {
-              stringArray.put(tStr, stringArray.get(tStr) + 1)
-            } else {
-              stringArray.put(tStr, 1)
-            }
-            currentPos = 0
+          char = charsBuf.get()
+          if (charMap.containsKey(char)) {
+            charMap.put(char, charMap.get(char) + 1)
           } else {
-            currentPos += 1
+            charMap.put(char, 1)
           }
         }
-        val it = stringArray.entrySet().iterator()
-        val result = new ArrayList[(String, Int)]
+        val it = charMap.entrySet().iterator()
+        val result = new ArrayList[(Char, Int)]
         while (it.hasNext()) {
-          var entry: Map.Entry[String, Int] = it.next
+          var entry: Map.Entry[Char, Int] = it.next
           result.add((entry.getKey(), entry.getValue()))
         }
-        val res : Array[(String, Int)] = result.toArray(new Array[(String, Int)](result.size()) )
+        val res : Array[(Char, Int)] = result.toArray(new Array[(Char, Int)](result.size()) )
         res.toSeq
       }).reduceByKey(_ + _, 5)
 
-      counts.saveToTachyon(InputPath, OutputPath, (pairData: (String, Int)) => {
-        var sum = 0;
-        sum = sum + pairData._1.length * 2 + 4 + 2
-        val buf = ByteBuffer.allocate(sum)
+      counts.saveToTachyon(InputPath, OutputPath, (pairData: (Char, Int)) => {
+        val buf = ByteBuffer.allocate(6)
         buf.order(ByteOrder.nativeOrder())
-
-        for (i <- 0 until pairData._1.length) {
-          buf.putChar(pairData._1.charAt(i))
-        }
-        buf.putChar('\n')
+        buf.putChar(pairData._1)
         buf.putInt(pairData._2)
         buf.flip()
-
         buf
       })
       printTimeMs(JOB, midStartTimeMs, "WordCount" + round + " from " +
