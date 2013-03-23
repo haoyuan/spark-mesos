@@ -15,7 +15,7 @@ class TachyonIntRDD(
   extends RDD[Int](sc, Nil) with Logging {
 
   override def getPartitions: Array[Partition] = {
-    val tachyonClient = sc.env.tachyonClient
+    val tachyonClient = SparkEnv.get.tachyonClient
     val array = new Array[Partition](files.size())
     val locations = tachyonClient.getFilesHosts(files);
     for (i <- 0 until files.size()) {
