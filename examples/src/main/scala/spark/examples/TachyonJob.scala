@@ -64,64 +64,64 @@ object TachyonJob {
     var OutputPath: String = args(2) + "/" + jobId + "/cleanedData"
     // val rawFile = sc.readFromTachyon[String](InputPath)
     rawFile = sc.readFromByteBufferTachyon(InputPath)
-    val cleanedData = rawFile.map(buf => {buf})
-    cleanedData.saveToTachyon(InputPath, OutputPath, (oriBuf: ByteBuffer) => {
-      val buf = ByteBuffer.allocate(oriBuf.limit())
-      buf.order(ByteOrder.nativeOrder())
-      val charBuf = buf.asCharBuffer()
-
-      var oriCharBuf = oriBuf.asCharBuffer
-      val length = oriCharBuf.limit()
-      var curChar: Char = ' '
-      for (i <- 0 until length) {
-        curChar = oriCharBuf.get()
-        if (curChar == 'v') {
-          charBuf.put('x')
-        } else {
-          charBuf.put(curChar)
-        }
-      }
-      buf.limit(charBuf.position * 2)
-      buf
-    })
-
-    // val cleanedData = rawFile.map(buf => {
-    //   val charsBuf = buf.asCharBuffer
-    //   val length = charsBuf.limit()
-    //   var sum = 0
-    //   val stringArray: ArrayList[String] = new ArrayList[String]()
-    //   val charArray: Array[Char] = new Array[Char](1000)
-    //   var currentPos: Int = 0
-    //   for (i <- 0 until length) {
-    //     charArray(currentPos) = charsBuf.get()
-    //     if (charArray(currentPos) == '\n') {
-    //       val str = String.valueOf(charArray, 0, currentPos)
-    //       if (str.contains("the")) {
-    //         stringArray.add(str)
-    //       }
-    //       currentPos = 0
-    //     } else {
-    //       currentPos += 1
-    //     }
-    //   }
-    //   stringArray
-    // })
-
-    // cleanedData.saveToTachyon(InputPath, OutputPath, (str: ArrayList[String]) => {
-    //   var sum = 0;
-    //   for (k <- 0 until str.size) {
-    //     sum = sum + str.get(k).length * 2 + 2
-    //   }
-    //   val buf = ByteBuffer.allocate(sum)
+    // val cleanedData = rawFile.map(buf => {buf})
+    // cleanedData.saveToTachyon(InputPath, OutputPath, (oriBuf: ByteBuffer) => {
+    //   val buf = ByteBuffer.allocate(oriBuf.limit())
     //   buf.order(ByteOrder.nativeOrder())
     //   val charBuf = buf.asCharBuffer()
 
-    //   for (k <- 0 until str.size) {
-    //     charBuf.put(str.get(k))
-    //     charBuf.put('\n')
+    //   var oriCharBuf = oriBuf.asCharBuffer
+    //   val length = oriCharBuf.limit()
+    //   var curChar: Char = ' '
+    //   for (i <- 0 until length) {
+    //     curChar = oriCharBuf.get()
+    //     if (curChar == 'v') {
+    //       charBuf.put('x')
+    //     } else {
+    //       charBuf.put(curChar)
+    //     }
     //   }
+    //   buf.limit(charBuf.position * 2)
     //   buf
     // })
+
+    val cleanedData = rawFile.map(buf => {
+      val charsBuf = buf.asCharBuffer
+      val length = charsBuf.limit()
+      var sum = 0
+      val stringArray: ArrayList[String] = new ArrayList[String]()
+      val charArray: Array[Char] = new Array[Char](1000)
+      var currentPos: Int = 0
+      for (i <- 0 until length) {
+        charArray(currentPos) = charsBuf.get()
+        if (charArray(currentPos) == '\n') {
+          val str = String.valueOf(charArray, 0, currentPos)
+          if (str.contains("the")) {
+            stringArray.add(str)
+          }
+          currentPos = 0
+        } else {
+          currentPos += 1
+        }
+      }
+      stringArray
+    })
+
+    cleanedData.saveToTachyon(InputPath, OutputPath, (str: ArrayList[String]) => {
+      var sum = 0;
+      for (k <- 0 until str.size) {
+        sum = sum + str.get(k).length * 2 + 2
+      }
+      val buf = ByteBuffer.allocate(sum)
+      buf.order(ByteOrder.nativeOrder())
+      val charBuf = buf.asCharBuffer()
+
+      for (k <- 0 until str.size) {
+        charBuf.put(str.get(k))
+        charBuf.put('\n')
+      }
+      buf
+    })
 
     printTimeMs(JOB, midStartTimeMs, "Data Clean from " + InputPath + " to " + OutputPath)
 
@@ -175,6 +175,42 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     // Word Count
     ///////////////////////////////////////////////////////////////////////////////
+    // for (round <- 0 until 5) {
+    //   midStartTimeMs = System.currentTimeMillis()
+    //   OutputPath = args(2) + "/" + jobId + "/wordcount" + round
+    //   val data = sc.readFromByteBufferTachyon(InputPath)
+    //   val counts = data.flatMap(buf => {
+    //     val charsBuf = buf.asCharBuffer
+    //     val length = charsBuf.limit()
+    //     var sum = 0
+    //     val charMap = new HashMap[Char, Int]()
+    //     var char: Char = ' '
+    //     for (i <- 0 until length) {
+    //       char = charsBuf.get()
+    //       if (charMap.containsKey(char)) {
+    //         charMap.put(char, charMap.get(char) + 1)
+    //       } else {
+    //         charMap.put(char, 1)
+    //       }
+    //     }
+    //     val it = charMap.entrySet().iterator()
+    //     val result = new ArrayList[(Char, Int)]
+    //     while (it.hasNext()) {
+    //       var entry: Map.Entry[Char, Int] = it.next
+    //       result.add((entry.getKey(), entry.getValue()))
+    //     }
+    //     val res : Array[(Char, Int)] = result.toArray(new Array[(Char, Int)](result.size()) )
+    //     res.toSeq
+    //   }).reduceByKey(_ + _, 5)
+
+    //   counts.saveToTachyon(InputPath, OutputPath, (pairData: (Char, Int)) => {
+    //     val buf = ByteBuffer.allocate(6)
+    //     buf.order(ByteOrder.nativeOrder())
+    //     buf.putChar(pairData._1)
+    //     buf.putInt(pairData._2)
+    //     buf.flip()
+    //     buf
+    //   })
     for (round <- 0 until 5) {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/wordcount" + round
@@ -183,32 +219,46 @@ object TachyonJob {
         val charsBuf = buf.asCharBuffer
         val length = charsBuf.limit()
         var sum = 0
-        val charMap = new HashMap[Char, Int]()
-        var char: Char = ' '
+        val stringArray = new HashMap[String, Int]()
+        val charArray: Array[Char] = new Array[Char](1000)
+        var currentPos: Int = 0
         for (i <- 0 until length) {
-          char = charsBuf.get()
-          if (charMap.containsKey(char)) {
-            charMap.put(char, charMap.get(char) + 1)
+          charArray(currentPos) = charsBuf.get()
+          if (charArray(currentPos) == '\n' || charArray(currentPos) == ' ') {
+            val tStr = String.valueOf(charArray, 0, currentPos)
+            if (stringArray.containsKey(tStr)) {
+              stringArray.put(tStr, stringArray.get(tStr) + 1)
+            } else {
+              stringArray.put(tStr, 1)
+            }
+            currentPos = 0
           } else {
-            charMap.put(char, 1)
+            currentPos += 1
           }
         }
-        val it = charMap.entrySet().iterator()
-        val result = new ArrayList[(Char, Int)]
+        val it = stringArray.entrySet().iterator()
+        val result = new ArrayList[(String, Int)]
         while (it.hasNext()) {
-          var entry: Map.Entry[Char, Int] = it.next
+          var entry: Map.Entry[String, Int] = it.next
           result.add((entry.getKey(), entry.getValue()))
         }
-        val res : Array[(Char, Int)] = result.toArray(new Array[(Char, Int)](result.size()) )
+        val res : Array[(String, Int)] = result.toArray(new Array[(String, Int)](result.size()) )
         res.toSeq
       }).reduceByKey(_ + _, 5)
 
-      counts.saveToTachyon(InputPath, OutputPath, (pairData: (Char, Int)) => {
-        val buf = ByteBuffer.allocate(6)
+      counts.saveToTachyon(InputPath, OutputPath, (pairData: (String, Int)) => {
+        var sum = 0;
+        sum = sum + pairData._1.length * 2 + 4 + 2
+        val buf = ByteBuffer.allocate(sum)
         buf.order(ByteOrder.nativeOrder())
-        buf.putChar(pairData._1)
+
+        for (i <- 0 until pairData._1.length) {
+          buf.putChar(pairData._1.charAt(i))
+        }
+        buf.putChar('\n')
         buf.putInt(pairData._2)
         buf.flip()
+
         buf
       })
       printTimeMs(JOB, midStartTimeMs, "WordCount" + round + " from " +

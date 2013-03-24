@@ -49,7 +49,8 @@ object HdfsJob {
     // val rawFile = sc.readFromTachyon[String](InputPath)
     val rawFile = sc.textFile(InputPath)
     // println(rawFile.count())
-    val cleanedData = rawFile.map(line => line.replace('v', 'x')).saveAsTextFile(OutputPath)
+    // val cleanedData = rawFile.map(line => line.replace('v', 'x')).saveAsTextFile(OutputPath)
+    val cleanedData = rawFile.filter(line => line.contains("the")).saveAsTextFile(OutputPath)
 
     printTimeMs(JOB, midStartTimeMs, "Data Clean from " + InputPath + " to " + OutputPath)
 
@@ -84,7 +85,7 @@ object HdfsJob {
       midStartTimeMs = System.currentTimeMillis()
       OutputPath = args(2) + "/" + jobId + "/wordcount" + round
       val data = sc.textFile(InputPath)
-      val counts = data.flatMap(line => line.toCharArray())
+      val counts = data.flatMap(line => line.split(" "))
                        .map(word => (word, 1))
                        .reduceByKey(_ + _, 3)
 
