@@ -123,14 +123,18 @@ private[spark] class Worker(
       master ! ExecutorStateChanged(appId, execId, state, message, exitStatus)
       val fullId = appId + "/" + execId
       if (ExecutorState.isFinished(state)) {
-        val executor = executors(fullId)
-        logInfo("Executor " + fullId + " finished with state " + state +
-          message.map(" message " + _).getOrElse("") +
-          exitStatus.map(" exitStatus " + _).getOrElse(""))
-        finishedExecutors(fullId) = executor
-        executors -= fullId
-        coresUsed -= executor.cores
-        memoryUsed -= executor.memory
+        if (executors.contains(fullId)) {
+          val executor = executors(fullId)
+          logInfo("Executor " + fullId + " finished with state " + state +
+            message.map(" message " + _).getOrElse("") +
+            exitStatus.map(" exitStatus " + _).getOrElse(""))
+          finishedExecutors(fullId) = executor
+          executors -= fullId
+          coresUsed -= executor.cores
+          memoryUsed -= executor.memory
+        } else {
+          logInfo("WARN!!!!!! Missing task!")
+        }
       }
 
     case KillExecutor(appId, execId) =>
@@ -145,10 +149,10 @@ private[spark] class Worker(
 
     case Terminated(_) | RemoteClientDisconnected(_, _) | RemoteClientShutdown(_, _) =>
       masterDisconnected()
-      
+
     case RequestWorkerState => {
       sender ! WorkerState(ip, port, workerId, executors.values.toList,
-        finishedExecutors.values.toList, masterUrl, cores, memory, 
+        finishedExecutors.values.toList, masterUrl, cores, memory,
         coresUsed, memoryUsed, masterWebUiUrl)
     }
   }
