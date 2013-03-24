@@ -44,7 +44,7 @@ object TachyonJob {
     var startTimeMs = System.currentTimeMillis()
 
     ///////////////////////////////////////////////////////////////////////////////
-    //  Clean data.
+    //  Load data into memory
     ///////////////////////////////////////////////////////////////////////////////
     var midStartTimeMs = startTimeMs
     var InputPath: String = args(1) + "/" + jobId
@@ -62,7 +62,7 @@ object TachyonJob {
     ///////////////////////////////////////////////////////////////////////////////
     //  Clean data.
     ///////////////////////////////////////////////////////////////////////////////
-    midStartTimeMs = startTimeMs
+    midStartTimeMs = System.currentTimeMillis()
     InputPath = args(1) + "/" + jobId
     var OutputPath: String = args(2) + "/" + jobId + "/cleanedData"
     // val rawFile = sc.readFromTachyon[String](InputPath)

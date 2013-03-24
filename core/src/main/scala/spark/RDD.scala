@@ -663,7 +663,7 @@ abstract class RDD[T: ClassManifest](
       parents.add(inputPath)
     }
     val children = new ArrayList[java.lang.String]()
-    val cmd = "/root/spark/run spark.TachyonRecompute " + sc.master
+    val cmd = "/home/haoyuan/Tachyon/spark/run spark.TachyonRecompute " + sc.master
     for (i <- 0 until partitions.size) {
       children.add(path + "/part_" + i);
     }
