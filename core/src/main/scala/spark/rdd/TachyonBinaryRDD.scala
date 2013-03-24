@@ -17,7 +17,7 @@ class TachyonByteBufferRDD(
   override def getPartitions: Array[Partition] = {
     val tachyonClient = SparkEnv.get.tachyonClient
     val array = new Array[Partition](files.size())
-    val locations = tachyonClient.getFilesHosts(files);
+    val locations = tachyonClient.getFilesHosts(files)
     for (i <- 0 until files.size()) {
       array(i) = new TachyonRDDPartition(id, files.get(i), locations.get(i).asScala)
     }
@@ -54,6 +54,14 @@ class TachyonByteBufferRDD(
   }
 
   override def getPreferredLocations(split: Partition): Seq[String] = {
+    if (System.getProperty("spark.tachyon.recompute", "false").toBoolean) {
+      val tachyonClient = SparkEnv.get.tachyonClient
+      val locations = tachyonClient.getFileHosts(split.asInstanceOf[TachyonRDDPartition].index)
+      println("Trying to get locations of the partition in recomputation " + split + " " + locations.asScala)
+      return locations.asScala
+    } else {
+      println("Trying to get locations of the partition in normal computation " + split)
+    }
     split.asInstanceOf[TachyonRDDPartition].locations
   }
 }

@@ -24,6 +24,8 @@ object TachyonRecompute {
     val dependency = tachyonClient.getClientDependencyInfo(args(2).toInt)
     val sparkContext = new SparkContext(args(0), "Recomputing dependency " + args(2))
 
+    System.setProperty("spark.tachyon.recompute", "true")
+
     val WARMUP_NUM = 10
     val warm = sparkContext.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
