@@ -19,12 +19,12 @@ object TachyonIterationJob {
   def main(args: Array[String]) {
     if (args.length != 6 && args.length != 5) {
       println("Usage: ./run spark.examples.TachyonIterationJob <SchedulerMaster> "
-        + "<InputData> <OutputData> <Iterations> <SleepMs> [<load>]")
+        + "<InputData> <OutputData> <Iterations> <sleep_ms> [<load>]")
       System.exit(-1)
     }
 
     val iterations = args(3).toInt
-    val sleepMs = args(4).toInt
+    val sleep_ms = args(4).toInt
     val JOB = "TachyonIterationJob " + " : "
     val sc = new SparkContext(args(0), JOB,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
@@ -80,7 +80,7 @@ object TachyonIterationJob {
         srcBuf.get(bytes, 0, srcBuf.limit())
         val dstBuf = ByteBuffer.wrap(bytes)
         dstBuf.limit(srcBuf.limit())
-        Thread.sleep(sleepMs)
+        Thread.sleep(0)
         dstBuf
       })
 
