@@ -17,9 +17,9 @@ object TachyonJob {
   }
 
   def main(args: Array[String]) {
-    if (args.length != 4) {
+    if (args.length != 5 && args.length != 4) {
       println("Usage: ./run spark.examples.TachyonJob <SchedulerMaster> "
-        + "<InputData> <OutputData> <JobId>")
+        + "<InputData> <OutputData> <JobId> [<load>]")
       System.exit(-1)
     }
 
@@ -49,12 +49,15 @@ object TachyonJob {
     var midStartTimeMs = startTimeMs
     var InputPath: String = args(1) + "/" + jobId
     var rawFile = sc.readFromByteBufferTachyon(InputPath)
-    val loadData = rawFile.map(buf => {
-      1
-    }).reduce(_ + _)
+    if (args.length == 5) {
+      val loadData = rawFile.map(buf => {
+        1
+      }).reduce(_ + _)
 
-    printTimeMs(JOB, midStartTimeMs, "Load data into memory: " + InputPath + " ; " + loadData
-      + " files in total")
+      printTimeMs(JOB, midStartTimeMs, "Load data into memory: " + InputPath + " ; " + loadData
+        + " files in total")
+      System.exit(0)
+    }
 
     ///////////////////////////////////////////////////////////////////////////////
     //  Clean data.
