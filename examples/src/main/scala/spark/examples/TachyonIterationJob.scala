@@ -32,7 +32,7 @@ object TachyonIterationJob {
     ///////////////////////////////////////////////////////////////////////////////
     //  Warm up.
     ///////////////////////////////////////////////////////////////////////////////
-    val WARMUP_NUM = 3
+    val WARMUP_NUM = 10
     val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
         for (i <- 0 until WARMUP_NUM) {
