@@ -45,6 +45,7 @@ object TachyonHdfs {
   }
 
   def generateLocFile(sc: SparkContext, filePrefix: String, files: Int) {
+    getSlots(sc)
     // write location file.
     val pIds = sc.parallelize(0 until files, files)
     pIds.map(i => {
