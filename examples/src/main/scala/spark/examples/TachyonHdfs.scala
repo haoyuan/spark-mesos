@@ -201,7 +201,7 @@ object TachyonHdfs {
           conf.set("fs.default.name", filePrefix)
           val fs = FileSystem.get(conf)
           val inputStream = fs.open(new Path(filePrefix + "data/part_" + i))
-          var total = BLOCKS_PER_FILE * BLOCK_SIZE_BYTES
+          var total = 1L * BLOCKS_PER_FILE * BLOCK_SIZE_BYTES
           while (total > 0) {
             total -= inputStream.read(rawBuf.array, 0, rawBuf.capacity())
           }
