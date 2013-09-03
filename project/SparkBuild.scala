@@ -73,6 +73,11 @@ object SparkBuild extends Build {
   lazy val allProjects = Seq[ProjectReference](
     core, repl, examples, bagel, streaming, mllib, tools, assemblyProj) ++ maybeYarnRef
 
+  val excludeJackson = ExclusionRule(organization = "org.codehaus.jackson")
+  val excludeNetty = ExclusionRule(organization = "org.jboss.netty")
+  val excludeAsm = ExclusionRule(organization = "asm")
+  val excludeSnappy = ExclusionRule(organization = "org.xerial.snappy")
+
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.apache.spark",
     version := "0.8.0-SNAPSHOT",
@@ -96,7 +101,8 @@ object SparkBuild extends Build {
 
     // For Sonatype publishing
     resolvers ++= Seq("sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-      "sonatype-staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"),
+      "sonatype-staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/",
+      "Local Maven Repository" at Path.userHome.asFile.toURI.toURL + "/.m2/repository"),
 
     publishMavenStyle := true,
 
@@ -147,7 +153,8 @@ object SparkBuild extends Build {
       "org.scalatest" %% "scalatest" % "1.9.1" % "test",
       "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
       "com.novocode" % "junit-interface" % "0.9" % "test",
-      "org.easymock" % "easymock" % "3.1" % "test"
+      "org.easymock" % "easymock" % "3.1" % "test",
+      "org.tachyonproject" % "tachyon" % "0.3.0-SNAPSHOT" excludeAll(excludeJackson, excludeNetty, excludeAsm)
     ),
     /* Workaround for issue #206 (fixed after SBT 0.11.0) */
     watchTransitiveSources <<= Defaults.inDependencies[Task[Seq[File]]](watchSources.task,
@@ -163,11 +170,6 @@ object SparkBuild extends Build {
   ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings
 
   val slf4jVersion = "1.7.2"
-
-  val excludeJackson = ExclusionRule(organization = "org.codehaus.jackson")
-  val excludeNetty = ExclusionRule(organization = "org.jboss.netty")
-  val excludeAsm = ExclusionRule(organization = "asm")
-  val excludeSnappy = ExclusionRule(organization = "org.xerial.snappy")
 
   def coreSettings = sharedSettings ++ Seq(
     name := "spark-core",

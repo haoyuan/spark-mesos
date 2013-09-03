@@ -17,7 +17,9 @@
 
 package org.apache.spark.rdd
 
+import java.nio.ByteBuffer
 import java.util.Random
+import java.util.ArrayList
 
 import scala.collection.Map
 import scala.collection.JavaConversions.mapAsScalaMap
@@ -71,7 +73,9 @@ import org.apache.spark._
  */
 abstract class RDD[T: ClassManifest](
     @transient private var sc: SparkContext,
-    @transient private var deps: Seq[Dependency[_]]
+    // TODO Add @transient back
+    // @transient private var deps: Seq[Dependency[_]]
+    private var deps: Seq[Dependency[_]]
   ) extends Serializable with Logging {
 
   /** Construct an RDD with just a one-to-one dependency on one parent */
@@ -173,7 +177,9 @@ abstract class RDD[T: ClassManifest](
   // Our dependencies and partitions will be gotten by calling subclass's methods below, and will
   // be overwritten when we're checkpointed
   private var dependencies_ : Seq[Dependency[_]] = null
-  @transient private var partitions_ : Array[Partition] = null
+  // TODO Add @transient back
+  // @transient private var partitions_ : Array[Partition] = null
+  private var partitions_ : Array[Partition] = null
 
   /** An Option holding our checkpoint RDD, if we are checkpointed */
   private def checkpointRDD: Option[RDD[T]] = checkpointData.flatMap(_.checkpointRDD)
@@ -818,6 +824,97 @@ abstract class RDD[T: ClassManifest](
       .saveAsSequenceFile(path)
   }
 
+  def saveToTachyon(inputPath: String, path: String): Int = {
+    saveToTachyon(inputPath, path, (x: T) => {
+      SparkEnv.get.tachyonSerializer.newInstance().serialize(x)
+    })
+    // System.out.println("Computing " + path + ": " + sc.env.tachyonClient + " " + partitions.size)
+
+    // // TODO Traverse Spark RDD dependency to find the top RDDs.
+    // val parents = new ArrayList[java.lang.String]()
+    // val children = new ArrayList[java.lang.String]()
+    // val cmd = "/root/spark/run spark.examples.TrexRecompute ec2-174-129-146-28.compute-1.amazonaws.com:5050 "
+    // for (i <- 0 until partitions.size) {
+    //   children.add(path + "/part_" + i);
+    // }
+    // val data = new ArrayList[ByteBuffer]()
+    // data.add(sc.env.closureSerializer.newInstance().serialize(this))
+    // val dependencyId = sc.env.tachyonClient.createDependency(parents, children, cmd, data,
+    //   "comment", "Spark", "v0.7.0", tachyon.DependencyType.Wide)
+
+    // val clientDependencyInfo = sc.env.tachyonClient.getClientDependencyInfo(dependencyId)
+
+    // sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
+    //   val tachyonClient = SparkEnv.get.tachyonClient
+    //   val file = tachyonClient.getFile(clientDependencyInfo.children.get(context.splitId));
+    //   file.open(tachyon.client.OpType.WRITE_CACHE);
+    //   val buf = new ArrayBuffer[T]()
+    //   buf ++= iter
+    //   file.append(SparkEnv.get.tachyonSerializer.newInstance().serialize[ArrayBuffer[T]](buf));
+    //   file.close();
+    // })
+
+    // dependencyId
+  }
+
+  var tachyonSerializer: T => ByteBuffer = null
+
+  def saveToTachyon(inputPath: String, path: String, f: T => ByteBuffer): Int = {
+    System.out.println("Computing " + path + ": " + sc.env.tachyonFS + " input path " +
+      inputPath + " output path " + path + " size " + partitions.size)
+
+    // TODO Traverse Spark RDD dependency to find the top RDDs.
+    val parents = new ArrayList[java.lang.String]()
+    if (inputPath != null && !inputPath.isEmpty) {
+      parents.add(inputPath)
+    }
+    val children = new ArrayList[java.lang.String]()
+    val cmd = "/home/haoyuan/Tachyon/spark/run-example org.apache.spark.TachyonRecompute " + sc.master
+
+    for (i <- 0 until partitions.size) {
+      children.add(path + "/part_" + i);
+    }
+    tachyonSerializer = f
+    val data = new ArrayList[ByteBuffer]()
+    data.add(sc.env.closureSerializer.newInstance().serialize(this))
+    val dependencyId = sc.env.tachyonFS.createDependency(parents, children, cmd, data,
+      "comment", "Spark", "v0.8.0-SNAPSHOT", tachyon.DependencyType.Wide.getValue(),
+      tachyon.Constants.MB * 512)
+
+    val clientDependencyInfo = sc.env.tachyonFS.getClientDependencyInfo(dependencyId)
+
+    sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
+      val tachyonFS = SparkEnv.get.tachyonFS
+      val file = tachyonFS.getFile(clientDependencyInfo.children.get(context.splitId))
+      val os = file.getOutStream(tachyon.client.WriteType.MUST_CACHE)
+      while (iter.hasNext) {
+        val buf = tachyonSerializer(iter.next)
+        os.write(buf.array(), buf.position(), buf.limit())
+      }
+      os.close()
+    })
+
+    dependencyId
+  }
+
+  def tachyonRecompute(dependency: tachyon.thrift.ClientDependencyInfo, partitions: Seq[Int]) {
+    System.out.println("Trying to re-compute " + dependency + " for partitions "
+      + partitions.toString())
+
+    sc.runJob(this, (context: TaskContext, iter: Iterator[T]) => {
+      val tachyonFS = SparkEnv.get.tachyonFS
+      val file = tachyonFS.getFile(dependency.children.get(context.splitId))
+      val os = file.getOutStream(tachyon.client.WriteType.MUST_CACHE)
+      while (iter.hasNext) {
+        val buf = tachyonSerializer(iter.next)
+        os.write(buf.array(), buf.position(), buf.limit())
+      }
+      os.close()
+    },
+    partitions,
+    false)
+  }
+
   /**
    * Creates tuples of the elements in this RDD by applying `f`.
    */
@@ -880,6 +977,10 @@ abstract class RDD[T: ClassManifest](
 
   /** The [[org.apache.spark.SparkContext]] that this RDD was created on. */
   def context = sc
+
+  def resetSparkContext(newSc: SparkContext) {
+    sc = newSc
+  }
 
   // Avoid handling doCheckpoint multiple times to prevent excessive recursion
   private var doCheckpointCalled = false

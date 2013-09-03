@@ -21,6 +21,7 @@ import java.io._
 import java.net.URI
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
+import java.nio.ByteBuffer
 
 import scala.collection.Map
 import scala.collection.generic.Growable
@@ -307,10 +308,22 @@ class SparkContext(
   /** Distribute a local Scala collection to form an RDD, with one or more
     * location preferences (hostnames of Spark nodes) for each object.
     * Create a new partition for each collection item. */
-   def makeRDD[T: ClassManifest](seq: Seq[(T, Seq[String])]): RDD[T] = {
+  def makeRDD[T: ClassManifest](seq: Seq[(T, Seq[String])]): RDD[T] = {
     val indexToPrefs = seq.zipWithIndex.map(t => (t._2, t._1._2)).toMap
     new ParallelCollectionRDD[T](this, seq.map(_._1), seq.size, indexToPrefs)
   }
+
+  def readFromTachyon[T: ClassManifest](path: String): RDD[T] = {
+    new TachyonRDD[T](this, env.tachyonFS.listFiles(path, true))
+  }
+
+  // def readFromIntTachyon(path: String): RDD[Int] = {
+  //   new TachyonIntRDD(this, env.tachyonFS.listFiles(path, true))
+  // }
+
+  // def readFromByteBufferTachyon(path: String): RDD[ByteBuffer] = {
+  //   new TachyonByteBufferRDD(this, env.tachyonFS.listFiles(path, true))
+  // }
 
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
