@@ -68,12 +68,12 @@ def parse_args():
   parser.add_option("-a", "--ami", help="Amazon Machine Image ID to use")
   parser.add_option("-v", "--spark-version", default="0.7.3",
       help="Version of Spark to use: 'X.Y.Z' or a specific git hash")
-  parser.add_option("--spark-git-repo", 
-      default="https://github.com/mesos/spark", 
+  parser.add_option("--spark-git-repo",
+      default="https://github.com/mesos/spark",
       help="Github repo from which to checkout supplied commit hash")
   parser.add_option("--hadoop-major-version", default="1",
       help="Major version of Hadoop (default: 1)")
-  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port", 
+  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port",
       help="Use SSH dynamic port forwarding to create a SOCKS proxy at " +
             "the given local address (for use with login)")
   parser.add_option("--resume", action="store_true", default=False,
@@ -107,7 +107,7 @@ def parse_args():
     print >> stderr, ("ERROR: The -i or --identity-file argument is " +
                       "required for " + action)
     sys.exit(1)
-  
+
   # Boto config check
   # http://boto.cloudhackers.com/en/latest/boto_config_tut.html
   home_dir = os.getenv('HOME')
@@ -191,7 +191,7 @@ def get_spark_ami(opts):
     instance_type = "pvm"
     print >> stderr,\
         "Don't recognize %s, assuming type is pvm" % opts.instance_type
-  
+
   ami_path = "%s/%s/%s" % (AMI_PREFIX, opts.region, instance_type)
   try:
     ami = urllib2.urlopen(ami_path).read().strip()
@@ -396,7 +396,7 @@ def setup_cluster(conn, master_nodes, slave_nodes, opts, deploy_ssh_key):
     scp(master, opts, opts.identity_file, '~/.ssh/id_rsa')
     ssh(master, opts, 'chmod 600 ~/.ssh/id_rsa')
 
-  modules = ['spark', 'shark', 'ephemeral-hdfs', 'persistent-hdfs', 
+  modules = ['spark', 'shark', 'ephemeral-hdfs', 'persistent-hdfs',
              'mapreduce', 'spark-standalone']
 
   if opts.hadoop_major_version == "1":
@@ -407,7 +407,7 @@ def setup_cluster(conn, master_nodes, slave_nodes, opts, deploy_ssh_key):
 
   # NOTE: We should clone the repository before running deploy_files to
   # prevent ec2-variables.sh from being overwritten
-  ssh(master, opts, "rm -rf spark-ec2 && git clone https://github.com/mesos/spark-ec2.git -b v2")
+  ssh(master, opts, "rm -rf spark-ec2 && git clone https://github.com/haoyuan/spark-ec2.git -b v2-tach")
 
   print "Deploying files to master..."
   deploy_files(conn, "deploy.generic", opts, master_nodes, slave_nodes, modules)
@@ -622,12 +622,12 @@ def main():
       print "Terminating slaves..."
       for inst in slave_nodes:
         inst.terminate()
-      
+
       # Delete security groups as well
       if opts.delete_groups:
         print "Deleting security groups (this will take some time)..."
         group_names = [cluster_name + "-master", cluster_name + "-slaves"]
-        
+
         attempt = 1;
         while attempt <= 3:
           print "Attempt %d" % attempt
