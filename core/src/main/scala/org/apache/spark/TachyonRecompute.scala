@@ -21,6 +21,7 @@ object TachyonRecompute {
       System.exit(1)
     }
 
+    System.setProperty("spark.tachyon.address", args(1))
     val tachyonFS = TachyonFS.get(args(1))
     val dependency = tachyonFS.getClientDependencyInfo(args(2).toInt)
     val sparkContext = new SparkContext(args(0), "Recomputing dependency " + args(2))

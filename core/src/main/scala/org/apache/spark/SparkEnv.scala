@@ -230,8 +230,10 @@ object SparkEnv extends Logging {
     val tachyonSerializer =
       Class.forName(tachyonSerializerClass).newInstance().asInstanceOf[Serializer]
     var tachyonFS: TachyonFS = null
-    tachyonFS = TachyonFS.get(tachyonAddress)
-    logWarning("TachyonClient has connected to " + tachyonAddress)
+    if (tachyonAddress != null) {
+      tachyonFS = TachyonFS.get(tachyonAddress)
+      logWarning("TachyonClient has connected to " + tachyonAddress)
+    }
 
     new SparkEnv(
       executorId,
