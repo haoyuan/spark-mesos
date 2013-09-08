@@ -241,7 +241,9 @@ def launch_cluster(conn, opts, cluster_name):
     slave_group.authorize('tcp', 8080, 8081, '0.0.0.0/0')
     slave_group.authorize('tcp', 50060, 50060, '0.0.0.0/0')
     slave_group.authorize('tcp', 50075, 50075, '0.0.0.0/0')
+    slave_group.authorize('tcp', 50070, 50070, '0.0.0.0/0')
     slave_group.authorize('tcp', 60060, 60060, '0.0.0.0/0')
+    slave_group.authorize('tcp', 60070, 60070, '0.0.0.0/0')
     slave_group.authorize('tcp', 60075, 60075, '0.0.0.0/0')
   cluster_placement_group = get_or_make_placement_group(conn, cluster_name)
 
