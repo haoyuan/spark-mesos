@@ -134,6 +134,17 @@ def get_or_make_group(conn, name):
     print "Creating security group " + name
     return conn.create_security_group(name, "Spark EC2 group")
 
+def get_or_make_placement_group(conn, name):
+  groups = conn.get_all_placement_groups()
+  group = [g for g in groups if g.name == name]
+  if len(group) > 0:
+    return group[0]
+  else:
+    print "Creating placement group " + name
+    while conn.create_placement_group(name) == False:
+      print "Created placement group " + name + " failed. Try again."
+      time.sleep(5)
+    return name
 
 # Wait for a set of launched instances to exit the "pending" state
 # (i.e. either to start running or to fail and be terminated)
@@ -232,6 +243,7 @@ def launch_cluster(conn, opts, cluster_name):
     slave_group.authorize('tcp', 50075, 50075, '0.0.0.0/0')
     slave_group.authorize('tcp', 60060, 60060, '0.0.0.0/0')
     slave_group.authorize('tcp', 60075, 60075, '0.0.0.0/0')
+  cluster_placement_group = get_or_make_placement_group(conn, cluster_name)
 
   # Check if instances are already running in our groups
   active_nodes = get_existing_cluster(conn, opts, cluster_name,
@@ -280,7 +292,8 @@ def launch_cluster(conn, opts, cluster_name):
           key_name = opts.key_pair,
           security_groups = [slave_group],
           instance_type = opts.instance_type,
-          block_device_map = block_map)
+          block_device_map = block_map,
+          placement_group = cluster_placement_group)
       my_req_ids += [req.id for req in slave_reqs]
       i += 1
 
@@ -331,7 +344,8 @@ def launch_cluster(conn, opts, cluster_name):
                               placement = zone,
                               min_count = num_slaves_this_zone,
                               max_count = num_slaves_this_zone,
-                              block_device_map = block_map)
+                              block_device_map = block_map,
+                              placement_group = cluster_placement_group)
         slave_nodes += slave_res.instances
         print "Launched %d slaves in %s, regid = %s" % (num_slaves_this_zone,
                                                         zone, slave_res.id)
@@ -349,7 +363,8 @@ def launch_cluster(conn, opts, cluster_name):
                          placement = opts.zone,
                          min_count = 1,
                          max_count = 1,
-                         block_device_map = block_map)
+                         block_device_map = block_map,
+                         placement_group = cluster_placement_group)
   master_nodes = master_res.instances
   print "Launched master in %s, regid = %s" % (zone, master_res.id)
 
