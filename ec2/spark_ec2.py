@@ -226,6 +226,7 @@ def launch_cluster(conn, opts, cluster_name):
     master_group.authorize(src_group=slave_group)
     master_group.authorize('tcp', 22, 22, '0.0.0.0/0')
     master_group.authorize('tcp', 8080, 8081, '0.0.0.0/0')
+    master_group.authorize('tcp', 10000, 10010, '0.0.0.0/0')
     master_group.authorize('tcp', 19998, 19999, '0.0.0.0/0')
     master_group.authorize('tcp', 33000, 33000, '0.0.0.0/0')
     master_group.authorize('tcp', 50030, 50030, '0.0.0.0/0')
