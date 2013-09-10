@@ -17,7 +17,7 @@
 
 package org.apache.spark.serializer
 
-import java.io.{EOFException, InputStream, OutputStream}
+import java.io.{EOFException, InputStream, OutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
 
 import com.esotericsoftware.kryo.io.{Input => KryoInput, Output => KryoOutput}
@@ -28,6 +28,8 @@ import com.twitter.chill.ScalaKryoInstantiator
 import org.apache.spark.broadcast.HttpBroadcast
 import org.apache.spark.{SerializableWritable, Logging}
 import org.apache.spark.storage.{GetBlock, GotBlock, PutBlock, StorageLevel}
+
+import org.apache.hadoop.io.Text;
 
 /**
  * A Spark serializer that uses the
@@ -60,6 +62,7 @@ class KryoSerializer extends org.apache.spark.serializer.Serializer with Logging
     // Allow sending SerializableWritable
     kryo.register(classOf[SerializableWritable[_]], new KryoJavaSerializer())
     kryo.register(classOf[HttpBroadcast[_]], new KryoJavaSerializer())
+    kryo.register(classOf[Text], new KryoTextSerializer())
 
     // Allow the user to register their own classes by setting spark.kryo.registrator
     try {
@@ -83,6 +86,38 @@ class KryoSerializer extends org.apache.spark.serializer.Serializer with Logging
 
   def newInstance(): SerializerInstance = {
     new KryoSerializerInstance(this)
+  }
+}
+
+private[spark]
+class KryoTextSerializer extends com.esotericsoftware.kryo.Serializer[Text] {
+  private val mText: Text = new Text()
+  private var mInput: KryoInput = null
+  private var mDis: DataInputStream = null
+
+  override def write(kryo: Kryo, output: KryoOutput, text: Text) {
+    text.write(new DataOutputStream(output));
+      // try {
+      //   text.write(new DataOutputStream(output));
+      // } catch (IOException e) {
+      //   e.printStackTrace();
+      // }
+  }
+
+  override def read(kryo: Kryo, input: KryoInput, textClass: Class[Text]): Text = {
+    if (input != mInput) {
+      mInput = input;
+      mDis = new DataInputStream(mInput);
+    }
+    mText.readFields(mDis);
+      // try {
+      //   mText.readFields(mDis);
+      // } catch (IOException e) {
+      //   e.printStackTrace();
+      //   return null;
+      // }
+
+    return mText;
   }
 }
 
