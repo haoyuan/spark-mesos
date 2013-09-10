@@ -17,24 +17,25 @@
 
 package org.apache.spark.serializer
 
-import java.nio.ByteBuffer
 import java.io.{EOFException, InputStream, OutputStream}
+import java.nio.ByteBuffer
 
-import com.esotericsoftware.kryo.serializers.{JavaSerializer => KryoJavaSerializer}
-import com.esotericsoftware.kryo.{KryoException, Kryo}
 import com.esotericsoftware.kryo.io.{Input => KryoInput, Output => KryoOutput}
+import com.esotericsoftware.kryo.{KryoException, Kryo}
+import com.esotericsoftware.kryo.serializers.{JavaSerializer => KryoJavaSerializer}
 import com.twitter.chill.ScalaKryoInstantiator
 
+import org.apache.spark.broadcast.HttpBroadcast
 import org.apache.spark.{SerializableWritable, Logging}
 import org.apache.spark.storage.{GetBlock, GotBlock, PutBlock, StorageLevel}
 
-import org.apache.spark.broadcast.HttpBroadcast
-
 /**
- * A Spark serializer that uses the [[http://code.google.com/p/kryo/wiki/V1Documentation Kryo 1.x library]].
+ * A Spark serializer that uses the
+ * [[http://code.google.com/p/kryo/wiki/V1Documentation Kryo 1.x library]].
  */
 class KryoSerializer extends org.apache.spark.serializer.Serializer with Logging {
-  private val bufferSize = System.getProperty("spark.kryoserializer.buffer.mb", "2").toInt * 1024 * 1024
+  private val bufferSize =
+    System.getProperty("spark.kryoserializer.buffer.mb", "2").toInt * 1024 * 1024
 
   def newKryoOutput() = new KryoOutput(bufferSize)
 
@@ -64,7 +65,8 @@ class KryoSerializer extends org.apache.spark.serializer.Serializer with Logging
     try {
       Option(System.getProperty("spark.kryo.registrator")).foreach { regCls =>
         logDebug("Running user registrator: " + regCls)
-        val reg = Class.forName(regCls, true, classLoader).newInstance().asInstanceOf[KryoRegistrator]
+        val reg =
+          Class.forName(regCls, true, classLoader).newInstance().asInstanceOf[KryoRegistrator]
         reg.registerClasses(kryo)
       }
     } catch {
