@@ -36,6 +36,7 @@ object BasicPerf {
 
     //  Warm up.
     val WARMUP_NUM = 500
+    println("Starting warm up.")
     val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
         for (i <- 0 until WARMUP_NUM) {
