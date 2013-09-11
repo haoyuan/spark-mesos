@@ -34,7 +34,7 @@ object BasicPerf {
     val sc = new SparkContext(args(0), "BasicPerf " + outputdata,
       System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
-    // Warmup
+    //  Warm up.
     val WARMUP_NUM = 500
     val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
@@ -46,10 +46,10 @@ object BasicPerf {
     println("Just warmed up.")
 
     val data = sc.textFile(args(1))
-    if (args(3).equal("Tachyon")) {
-    } else if (args(3).equal("SerCache"))
+    if (args(3).equals("Tachyon")) {
+    } else if (args(3).equals("SerCache")) {
       data.persist()
-    } else if (args(3).equal("DeCache")) {
+    } else if (args(3).equals("DeCache")) {
       data.persist(org.apache.spark.storage.StorageLevel.MEMORY_ONLY_SER)
     } else {
       System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Filter|WC]> <Tachyon|SerCache|DeCache>")
@@ -61,15 +61,15 @@ object BasicPerf {
 
     val firstStartTimeMs = System.currentTimeMillis()
     var startTimeMs = System.currentTimeMillis()
-    if (args(2).equal("Count")) {
+    if (args(2).equals("Count")) {
       for (i <- 1 to 10) {
         startTimeMs = System.currentTimeMillis()
         data.count()
         System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms.")
       }
       System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms.")
-    } else if (args(2).equal("Filter")) {
-    } else if (args(2).equal("WC")) {
+    } else if (args(2).equals("Filter")) {
+    } else if (args(2).equals("WC")) {
       for (i <- 1 to 10) {
         startTimeMs = System.currentTimeMillis()
         data.flatMap(line => line.split(" ")).map(word => (word, i)).reduceByKey(_ + _).saveAsTextFile(outputdata + "-" + i)
