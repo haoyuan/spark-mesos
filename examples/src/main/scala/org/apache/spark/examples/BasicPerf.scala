@@ -21,25 +21,16 @@ import scala.math.random
 import org.apache.spark._
 import SparkContext._
 
-/** Computes an approximation to pi */
+/** Basic Perf **/
 object BasicPerf {
-  def main(args: Array[String]) {
-    if (args.length != 4) {
-      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Filter|WC]> <Tachyon|SerCache|DeCache>")
-      System.exit(1)
-    }
-
-    // Setup
+  def compute(sc: SparkContext, args: Array[String]) {
     val outputdata = args(1) + "-" + args(2) + "-" + args(3)
-    val sc = new SparkContext(args(0), "BasicPerf " + outputdata,
-      System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
-
     //  Warm up.
     val WARMUP_NUM = 500
     println("Starting warm up.")
     val warm = sc.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
         var sum = 0
-        for (i <- 0 until WARMUP_NUM) {
+        for (i <- 0 until 1) {
           sum += i
         }
         sum
@@ -53,35 +44,54 @@ object BasicPerf {
     } else if (args(3).equals("DeCache")) {
       data.persist(org.apache.spark.storage.StorageLevel.MEMORY_ONLY_SER)
     } else {
-      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Filter|WC]> <Tachyon|SerCache|DeCache>")
+      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Grep|WC]> <Tachyon|SerCache|DeCache>")
       System.err.println("Wrong Cache Type: " + args(3))
       System.exit(1)
     }
     data.count()
     // Done setup
 
+    val times = 3
     val firstStartTimeMs = System.currentTimeMillis()
     var startTimeMs = System.currentTimeMillis()
     if (args(2).equals("Count")) {
-      for (i <- 1 to 10) {
+      for (i <- 1 to times) {
         startTimeMs = System.currentTimeMillis()
-        data.count()
-        System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms.")
+        println(data.count())
+        System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms. " + outputdata)
       }
-      System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms.")
-    } else if (args(2).equals("Filter")) {
+      System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms." + outputdata)
+    } else if (args(2).equals("Grep")) {
+      for (i <- 1 to times) {
+        startTimeMs = System.currentTimeMillis()
+        println(data.filter(line => line.contains("berkeley")).count())
+        System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms. " + outputdata)
+      }
+      System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms." + outputdata)
     } else if (args(2).equals("WC")) {
-      for (i <- 1 to 10) {
+      for (i <- 1 to times) {
         startTimeMs = System.currentTimeMillis()
         data.flatMap(line => line.split(" ")).map(word => (word, i)).reduceByKey(_ + _).saveAsTextFile(outputdata + "-" + i)
-        System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms.")
+        System.out.println("Round Time " + i + " : " + (System.currentTimeMillis() - startTimeMs) + " ms." + outputdata)
       }
-      System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms.")
+      System.out.println("Final Round Time " + " : " + (System.currentTimeMillis() - firstStartTimeMs) + " ms." + outputdata)
     } else {
-      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Filter|WC]> <Tachyon|SerCache|DeCache>")
+      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Grep|WC]> <Tachyon|SerCache|DeCache>")
       System.err.println("Wrong Application Type: " + args(2))
       System.exit(1)
     }
+  }
+
+  def main(args: Array[String]) {
+    if (args.length != 4) {
+      System.err.println("Usage: BasicPerf <MasterAddr> <DataPath> <Count|Grep|WC]> <Tachyon|SerCache|DeCache>")
+      System.exit(1)
+    }
+
+    // Setup
+    val outputdata = args(1) + "-" + args(2) + "-" + args(3)
+    val sc = new SparkContext(args(0), "BasicPerf " + outputdata,
+      System.getenv("SPARK_HOME"), Seq(System.getenv("SPARK_EXAMPLES_JAR")))
 
     System.exit(0)
   }
