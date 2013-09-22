@@ -645,7 +645,7 @@ def main():
       # Delete security groups as well
       if opts.delete_groups:
         print "Deleting security groups (this will take some time)..."
-        group_names = [cluster_name + "-master", cluster_name + "-slaves"]
+        group_names = [cluster_name + "-zoo", cluster_name + "-master", cluster_name + "-slaves"]
 
         attempt = 1;
         while attempt <= 3:
