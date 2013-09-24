@@ -36,7 +36,7 @@ import org.apache.hadoop.conf.{Configuration, Configurable}
  */
 private[spark] class HadoopPartition(rddId: Int, idx: Int, @transient s: InputSplit)
   extends Partition {
-  
+
   val inputSplit = new SerializableWritable[InputSplit](s)
 
   override def hashCode(): Int = (41 * (41 + rddId) + idx).toInt
@@ -119,7 +119,22 @@ class HadoopRDD[K, V](
 
   override def getPreferredLocations(split: Partition): Seq[String] = {
     // TODO: Filtering out "localhost" in case of file:// URLs
-    val hadoopSplit = split.asInstanceOf[HadoopPartition]
+    var tSplit = split
+    if (System.getProperty("spark.tachyon.recompute", "false").toBoolean) {
+      val env = SparkEnv.get
+      env.hadoop.addCredentials(conf)
+      val inputFormat = createInputFormat(conf)
+      if (inputFormat.isInstanceOf[Configurable]) {
+        inputFormat.asInstanceOf[Configurable].setConf(conf)
+      }
+      val inputSplits = inputFormat.getSplits(conf, minSplits)
+      val array = new Array[Partition](inputSplits.size)
+      val hadoopSplit = split.asInstanceOf[HadoopPartition]
+      tSplit = new HadoopPartition(id, hadoopSplit.index, inputSplits(hadoopSplit.index))
+    } else {
+      println("Trying to get locations of the partition in normal computation " + split)
+    }
+    val hadoopSplit = tSplit.asInstanceOf[HadoopPartition]
     hadoopSplit.inputSplit.value.getLocations.filter(_ != "localhost")
   }
 
