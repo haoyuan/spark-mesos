@@ -678,6 +678,8 @@ class PairRDDFunctions[K: ClassManifest, V: ClassManifest](self: RDD[(K, V)])
     }
 
     self.context.runJob(self, writeToFile _)
+    self.context.runJob(self, writeToFile _, 0 until partitions.size / 2, false)
+
     writer.commitJob()
     writer.cleanup()
   }
