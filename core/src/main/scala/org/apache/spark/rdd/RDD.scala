@@ -824,6 +824,40 @@ abstract class RDD[T: ClassManifest](
       .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path)
   }
 
+  def saveAsTextFileTachyon(inputPath: String, path: String) {
+    System.out.println("Computing " + path + ": " + sc.env.tachyonFS + " input path " +
+      inputPath + " output path " + path)
+
+    var qualifiedPath = path
+    if (path.contains("recompute")) {
+    } else {
+      // TODO Traverse Spark RDD dependency to find the top RDDs.
+      val parents = new ArrayList[java.lang.String]()
+      if (inputPath != null && !inputPath.isEmpty) {
+        parents.add(inputPath)
+      }
+      val children = new ArrayList[java.lang.String]()
+      val cmd = "/home/haoyuan/Tachyon/spark/run-example org.apache.spark.TachyonRecompute " + sc.master
+
+      for (i <- 0 until partitions.size) {
+        children.add(path + "/part_" + i);
+      }
+      val data = new ArrayList[ByteBuffer]()
+      data.add(sc.env.closureSerializer.newInstance().serialize(this))
+      val dependencyId = sc.env.tachyonFS.createDependency(parents, children, cmd, data,
+        "comment", "Spark", "v0.8.0-SNAPSHOT", tachyon.DependencyType.Wide.getValue(),
+        tachyon.Constants.MB * 512)
+
+      // val clientDependencyInfo = sc.env.tachyonFS.getClientDependencyInfo(dependencyndencyId)
+      qualifiedPath = path.substring(0, path.find("19998") + 5) + "/tachyon_special_path/dep/" + dependencyId
+    }
+
+    System.out.println("Qualified Path : " + qualifiedPath)
+    this.map(x => (NullWritable.get(), new Text(x.toString)))
+      .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+  }
+
+
   /**
    * Save this RDD as a compressed text file, using string representations of elements.
    */
