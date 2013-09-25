@@ -678,7 +678,7 @@ class PairRDDFunctions[K: ClassManifest, V: ClassManifest](self: RDD[(K, V)])
     }
 
     self.context.runJob(self, writeToFile _)
-    self.context.runJob(self, writeToFile _, (0 to 3).toList, false)
+    // self.context.runJob(self, writeToFile _, (0 to 3).toList, false)
 
     writer.commitJob()
     writer.cleanup()
