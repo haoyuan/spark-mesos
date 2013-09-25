@@ -834,13 +834,13 @@ abstract class RDD[T: ClassManifest](
       // TODO Traverse Spark RDD dependency to find the top RDDs.
       val parents = new ArrayList[java.lang.String]()
       if (inputPath != null && !inputPath.isEmpty) {
-        parents.add(inputPath)
+        parents.add(inputPath.substring(path.find("19998") + 5))
       }
       val children = new ArrayList[java.lang.String]()
       val cmd = "/home/haoyuan/Tachyon/spark/run-example org.apache.spark.TachyonRecompute " + sc.master
 
       for (i <- 0 until partitions.size) {
-        children.add(path + "/part_" + i);
+        children.add(path.substring(path.find("19998") + 5) + "/part_" + i);
       }
       val data = new ArrayList[ByteBuffer]()
       data.add(sc.env.closureSerializer.newInstance().serialize(this))
