@@ -857,19 +857,19 @@ abstract class RDD[T: ClassManifest](
 
     _qPath = qualifiedPath
     System.out.println("Qualified Path : " + qualifiedPath)
-    this.map(x => (NullWritable.get(), new Text(x.toString)))
-      .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+    var tempRdd = this.map(x => (NullWritable.get(), new Text(x.toString)))
+    tempRdd._qPath = qualifiedPath
+    tempRdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
   }
 
   def saveAsTextFileTachyonRecompute(tachyonAddr: String, depId: Int, recomputes: ArrayBuffer[Int]) {
-    _recomputes = recomputes
-
     var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + depId
 
     System.out.println("Qualified Path : " + qualifiedPath)
-    _qPath = qualifiedPath
-    this.map(x => (NullWritable.get(), new Text(x.toString)))
-      .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+    var tempRdd = this.map(x => (NullWritable.get(), new Text(x.toString)))
+    tempRdd._qPath = qualifiedPath
+    tempRdd._recomputes = recomputes
+    tempRdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
   }
 
 
