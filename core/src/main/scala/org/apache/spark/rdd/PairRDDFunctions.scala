@@ -677,7 +677,11 @@ class PairRDDFunctions[K: ClassManifest, V: ClassManifest](self: RDD[(K, V)])
       writer.commit()
     }
 
-    self.context.runJob(self, writeToFile _)
+    if (self._qPath.contains("tachyon_recompute")) {
+      self.context.runJob(self, writeToFile _, self._recomputes, false)
+    } else {
+      self.context.runJob(self, writeToFile _)
+    }
     // self.context.runJob(self, writeToFile _, (0 to 3).toList, false)
 
     writer.commitJob()

@@ -824,6 +824,9 @@ abstract class RDD[T: ClassManifest](
       .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path)
   }
 
+  var _recomputes: ArrayBuffer[Int] = null
+  var _qPath: String = null
+
   def saveAsTextFileTachyon(inputPath: String, path: String) {
     System.out.println("Computing " + path + ": " + sc.env.tachyonFS + " input path " +
       inputPath + " output path " + path)
@@ -849,10 +852,22 @@ abstract class RDD[T: ClassManifest](
         tachyon.Constants.MB * 512)
 
       // val clientDependencyInfo = sc.env.tachyonFS.getClientDependencyInfo(dependencyndencyId)
-      qualifiedPath = path.substring(0, path.find("19998") + 5) + "/tachyon_special_path/dep/" + dependencyId
+      qualifiedPath = path.substring(0, path.find("19998") + 5) + "/tachyon_dep/" + dependencyId
     }
 
+    _qPath = qualifiedPath
     System.out.println("Qualified Path : " + qualifiedPath)
+    this.map(x => (NullWritable.get(), new Text(x.toString)))
+      .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+  }
+
+  def saveAsTextFileTachyonRecompute(tachyonAddr: String, depId: Int, recomputes: ArrayBuffer[Int]) {
+    _recomputes = recomputes
+
+    var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + depId
+
+    System.out.println("Qualified Path : " + qualifiedPath)
+    _qPath = qualifiedPath
     this.map(x => (NullWritable.get(), new Text(x.toString)))
       .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
   }
