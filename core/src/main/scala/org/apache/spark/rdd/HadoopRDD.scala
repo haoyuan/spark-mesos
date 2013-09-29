@@ -50,7 +50,7 @@ private[spark] class HadoopPartition(rddId: Int, idx: Int, @transient s: InputSp
  */
 class HadoopRDD[K, V](
     sc: SparkContext,
-    conf: JobConf,
+    @transient conf: JobConf,
     inputFormatClass: Class[_ <: InputFormat[K, V]],
     keyClass: Class[K],
     valueClass: Class[V],
@@ -59,6 +59,7 @@ class HadoopRDD[K, V](
 
   // A Hadoop JobConf can be about 10 KB, which is pretty big, so broadcast it
   // private val confBroadcast = sc.broadcast(new SerializableWritable(conf))
+  private val newConf = new SerializableWritable(conf)
 
   override def getPartitions: Array[Partition] = {
     val env = SparkEnv.get
@@ -85,7 +86,7 @@ class HadoopRDD[K, V](
     logInfo("Input split: " + split.inputSplit)
     var reader: RecordReader[K, V] = null
 
-    // val conf = confBroadcast.value.value
+    val conf = newConf.value //confBroadcast.value.value
     val fmt = createInputFormat(conf)
     if (fmt.isInstanceOf[Configurable]) {
       fmt.asInstanceOf[Configurable].setConf(conf)
@@ -142,6 +143,5 @@ class HadoopRDD[K, V](
     // Do nothing. Hadoop RDD should not be checkpointed.
   }
 
-  // def getConf: Configuration = confBroadcast.value.value
-  def getConf: Configuration = conf
+  def getConf: Configuration = newConf.value //confBroadcast.value.value
 }
