@@ -116,7 +116,7 @@ class KMeans private (
   def run(data: RDD[Array[Double]]): KMeansModel = {
     // TODO: check whether data is persistent; this needs RDD.storageLevel to be publicly readable
 
-    val sc = data.sparkContext
+    val sc = data.context
 
     val centers = if (initializationMode == KMeans.RANDOM) {
       initRandom(data)

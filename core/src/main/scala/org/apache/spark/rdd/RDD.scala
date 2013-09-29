@@ -112,7 +112,7 @@ abstract class RDD[T: ClassManifest](
   // =======================================================================
 
   /** The SparkContext that created this RDD. */
-  def sparkContext: SparkContext = sc
+  // def sparkContext: SparkContext = sc
 
   /** A unique ID for this RDD (within its SparkContext). */
   val id: Int = sc.newRddId()
@@ -1042,7 +1042,7 @@ abstract class RDD[T: ClassManifest](
   }
 
   /** The [[org.apache.spark.SparkContext]] that this RDD was created on. */
-  def context = sc
+  @transient def context = sc
 
   def resetSparkContext(newSc: SparkContext) {
     sc = newSc

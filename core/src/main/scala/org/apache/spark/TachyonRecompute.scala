@@ -38,7 +38,7 @@ object TachyonRecompute {
       }).collect()
     println("Just warmed up.")
 
-    val rdd = SparkEnv.get.closureSerializer.newInstance().deserialize[RDD[_]](dependency.data.get(0))
+    val rdd = sparkContext.env.closureSerializer.newInstance().deserialize[RDD[_]](dependency.data.get(0))
     rdd.resetSparkContext(sparkContext)
     val arraybuffer = new ArrayBuffer[Int]()
     for (i <- 3 until args.length) {
