@@ -863,7 +863,7 @@ abstract class RDD[T: ClassManifest](
   }
 
   def saveAsTextFileTachyonRecompute(tachyonAddr: String, depId: Int, recomputes: ArrayBuffer[Int]) {
-    var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + depId + "_" + System.currentTimeMillis()
+    var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + System.currentTimeMillis() + "_" + depId
 
     System.out.println("Qualified Path : " + qualifiedPath)
     var tempRdd = this.map(x => (NullWritable.get(), new Text(x.toString)))
