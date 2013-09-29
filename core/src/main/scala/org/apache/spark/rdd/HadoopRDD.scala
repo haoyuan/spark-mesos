@@ -123,6 +123,7 @@ class HadoopRDD[K, V](
     var tSplit = split
     if (System.getProperty("spark.tachyon.recompute", "false").toBoolean) {
       val env = SparkEnv.get
+      val conf = newConf.value
       env.hadoop.addCredentials(conf)
       val inputFormat = createInputFormat(conf)
       if (inputFormat.isInstanceOf[Configurable]) {
