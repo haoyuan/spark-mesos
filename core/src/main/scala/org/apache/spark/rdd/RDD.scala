@@ -863,15 +863,15 @@ abstract class RDD[T: ClassManifest](
   }
 
   def saveAsTextFileTachyonRecompute(tachyonAddr: String, depId: Int, recomputes: ArrayBuffer[Int]) {
-    var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + System.currentTimeMillis() + "_" + depId
+    var qualifiedPath = "tachyon://" + tachyonAddr + "/tachyon_recompute/" + depId
 
     System.out.println("Qualified Path : " + qualifiedPath)
     var tempRdd = this.map(x => (NullWritable.get(), new Text(x.toString)))
     tempRdd._qPath = qualifiedPath
     tempRdd._recomputes = recomputes
     tempRdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+    sc.env.tachyonFS.rename("/tachyon_recompute/" + depId, "/tachyon_recompute/done/" + depId)
   }
-
 
   /**
    * Save this RDD as a compressed text file, using string representations of elements.
