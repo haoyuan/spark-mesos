@@ -870,6 +870,7 @@ abstract class RDD[T: ClassManifest](
     tempRdd._qPath = qualifiedPath
     tempRdd._recomputes = recomputes
     tempRdd.saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](qualifiedPath)
+    sc.env.tachyonFS.mkdir("/tachyon_recompute/done")
     sc.env.tachyonFS.rename("/tachyon_recompute/" + depId, "/tachyon_recompute/done/" + depId)
   }
 
