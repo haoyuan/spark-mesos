@@ -37,6 +37,7 @@ private[spark] class SparkDeploySchedulerBackend(
   var shutdownCallback : (SparkDeploySchedulerBackend) => Unit = _
 
   val maxCores = System.getProperty("spark.cores.max", Int.MaxValue.toString).toInt
+  logInfo("For Testing ********************* maxCores " + maxCores)
 
   override def start() {
     super.start()
