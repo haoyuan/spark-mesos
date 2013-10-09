@@ -27,6 +27,7 @@ object TachyonRecompute {
     val sparkContext = new SparkContext(args(0), "Recomputing dependency " + args(2))
 
     System.setProperty("spark.tachyon.recompute", "true")
+    System.setProperty("spark.cores.max", "84")
 
     val WARMUP_NUM = 10
     val warm = sparkContext.parallelize(1 to WARMUP_NUM, WARMUP_NUM).map(i => {
